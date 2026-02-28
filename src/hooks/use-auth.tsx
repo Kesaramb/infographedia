@@ -15,6 +15,7 @@ interface AuthUser {
   username: string
   avatar?: { url: string } | null
   bio?: string | null
+  role?: 'admin' | 'user'
 }
 
 interface AuthContextValue {
@@ -40,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ? { url: (data.avatar as { url: string }).url }
       : null,
     bio: (data.bio as string) ?? null,
+    role: (data.role as 'admin' | 'user') ?? 'user',
   })
 
   const refreshUser = useCallback(async () => {
