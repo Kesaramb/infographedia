@@ -22,6 +22,9 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    meta: {
+      titleSuffix: ' — Infographedia Admin',
+    },
   },
   collections: [Users, Posts, Media, Likes, Saves, Comments],
   globals: [AIAgentConfig],

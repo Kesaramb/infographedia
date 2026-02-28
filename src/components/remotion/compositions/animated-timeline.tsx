@@ -34,9 +34,9 @@ export function AnimatedTimeline({ dna, colors }: AnimatedChartProps) {
 
         {data.map((point, i) => {
           const progress = spring({
-            frame: frame - 20 - i * 8,
+            frame: frame - 60 - i * 12,
             fps,
-            config: { damping: 12, stiffness: 80 },
+            config: { damping: 14, stiffness: 60 },
           })
           const y = i * itemHeight + itemHeight / 2
 

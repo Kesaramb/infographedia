@@ -41,7 +41,7 @@ export function AnimatedLineChart({ dna, colors }: AnimatedChartProps) {
     totalLength += Math.sqrt(dx * dx + dy * dy)
   }
 
-  const drawProgress = interpolate(frame, [20, 70], [0, 1], {
+  const drawProgress = interpolate(frame, [60, 140], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   })
@@ -83,7 +83,7 @@ export function AnimatedLineChart({ dna, colors }: AnimatedChartProps) {
         {points.map((p, i) => {
           const pointOpacity = interpolate(
             frame,
-            [20 + (i / (data.length - 1 || 1)) * 50, 30 + (i / (data.length - 1 || 1)) * 50],
+            [60 + (i / (data.length - 1 || 1)) * 80, 80 + (i / (data.length - 1 || 1)) * 80],
             [0, 1],
             { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
           )

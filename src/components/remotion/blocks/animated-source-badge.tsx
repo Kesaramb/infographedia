@@ -14,7 +14,7 @@ interface AnimatedTextProps {
 
 export function AnimatedSourceBadge({ dna, colors }: AnimatedTextProps) {
   const frame = useCurrentFrame()
-  const opacity = interpolate(frame, [80, 90], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  const opacity = interpolate(frame, [180, 210], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
 
   return (
     <div

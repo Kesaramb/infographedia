@@ -16,7 +16,7 @@ export function AnimatedSubtitle({ dna, colors }: AnimatedTextProps) {
   const frame = useCurrentFrame()
   if (!dna.content.subtitle) return null
 
-  const opacity = interpolate(frame, [10, 25], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  const opacity = interpolate(frame, [20, 50], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
 
   return (
     <div

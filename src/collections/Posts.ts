@@ -7,6 +7,14 @@ export const Posts: CollectionConfig = {
   },
   access: {
     read: () => true, // Public read — anyone can browse the feed
+    delete: ({ req }) => {
+      if (!req.user) return false
+      return (req.user as { role?: string }).role === 'admin'
+    },
+    admin: ({ req }) => {
+      if (!req.user) return false
+      return (req.user as { role?: string }).role === 'admin'
+    },
   },
   fields: [
     {

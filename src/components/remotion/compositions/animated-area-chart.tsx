@@ -36,7 +36,7 @@ export function AnimatedAreaChart({ dna, colors }: AnimatedChartProps) {
   const lineD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
   const areaD = lineD + ` L ${points[points.length - 1].x} ${baseline} L ${points[0].x} ${baseline} Z`
 
-  const revealProgress = interpolate(frame, [20, 70], [0, 1], {
+  const revealProgress = interpolate(frame, [60, 140], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   })
@@ -87,7 +87,7 @@ export function AnimatedAreaChart({ dna, colors }: AnimatedChartProps) {
         {points.map((p, i) => {
           const pointProgress = interpolate(
             frame,
-            [20 + (i / (data.length - 1 || 1)) * 50, 30 + (i / (data.length - 1 || 1)) * 50],
+            [60 + (i / (data.length - 1 || 1)) * 80, 80 + (i / (data.length - 1 || 1)) * 80],
             [0, 1],
             { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
           )

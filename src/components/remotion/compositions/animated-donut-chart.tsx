@@ -52,7 +52,7 @@ export function AnimatedDonutChart({ dna, colors }: AnimatedChartProps) {
             const sliceAngle = (point.value / total) * 360
             const startAngle = currentAngle
 
-            const progress = interpolate(frame, [20 + i * 8, 40 + i * 8], [0, 1], {
+            const progress = interpolate(frame, [60 + i * 12, 90 + i * 12], [0, 1], {
               extrapolateLeft: 'clamp',
               extrapolateRight: 'clamp',
             })

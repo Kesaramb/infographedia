@@ -17,7 +17,7 @@ export function AnimatedStatCard({ dna, colors }: AnimatedChartProps) {
   const data = dna.content.data[0]
   if (!data) return null
 
-  const countProgress = interpolate(frame, [20, 65], [0, 1], {
+  const countProgress = interpolate(frame, [60, 140], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   })
@@ -27,12 +27,12 @@ export function AnimatedStatCard({ dna, colors }: AnimatedChartProps) {
     ? Math.round(currentValue).toLocaleString()
     : currentValue.toFixed(2)
 
-  const opacity = interpolate(frame, [15, 25], [0, 1], {
+  const opacity = interpolate(frame, [50, 70], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   })
 
-  const scale = interpolate(frame, [15, 35], [0.8, 1], {
+  const scale = interpolate(frame, [50, 80], [0.8, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   })

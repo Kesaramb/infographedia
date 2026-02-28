@@ -53,9 +53,9 @@ export function AnimatedGroupedBar({ dna, colors }: AnimatedChartProps) {
 
           const targetHeight = (point.value / maxValue) * (chartHeight - 20)
           const progress = spring({
-            frame: frame - 20 - i * 4,
+            frame: frame - 60 - i * 8,
             fps,
-            config: { damping: 12, stiffness: 80 },
+            config: { damping: 14, stiffness: 60 },
           })
           const barHeight = targetHeight * progress
 
@@ -85,7 +85,7 @@ export function AnimatedGroupedBar({ dna, colors }: AnimatedChartProps) {
                 fontSize={9}
                 fontWeight="bold"
                 fill={colors.text}
-                opacity={interpolate(frame, [35 + i * 4, 45 + i * 4], [0, 1], {
+                opacity={interpolate(frame, [90 + i * 8, 105 + i * 8], [0, 1], {
                   extrapolateLeft: 'clamp',
                   extrapolateRight: 'clamp',
                 })}

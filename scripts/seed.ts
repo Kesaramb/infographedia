@@ -19,10 +19,10 @@ async function seed() {
   console.log('👤 Creating seed users...')
 
   const users = [
-    { username: 'data.pioneer', email: 'pioneer@infographedia.dev', password: 'password123' },
-    { username: 'eco_metrics', email: 'eco@infographedia.dev', password: 'password123' },
-    { username: 'neuro_mapper', email: 'neuro@infographedia.dev', password: 'password123' },
-    { username: 'cyber.analyst', email: 'cyber@infographedia.dev', password: 'password123' },
+    { username: 'data.pioneer', email: 'pioneer@infographedia.dev', password: 'password123', role: 'user' as const },
+    { username: 'eco_metrics', email: 'eco@infographedia.dev', password: 'password123', role: 'user' as const },
+    { username: 'neuro_mapper', email: 'neuro@infographedia.dev', password: 'password123', role: 'user' as const },
+    { username: 'cyber.analyst', email: 'cyber@infographedia.dev', password: 'password123', role: 'user' as const },
   ]
 
   const createdUsers: Array<{ id: number | string; username: string }> = []

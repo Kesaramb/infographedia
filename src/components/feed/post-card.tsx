@@ -88,8 +88,14 @@ export function PostCard({ post }: PostCardProps) {
         <WatermarkBadge />
       </div>
 
-      {/* Hidden static renderer — used for PNG export via html-to-image */}
-      <div ref={infographicRef} className="hidden">
+      {/* Offscreen static renderer — used for PNG export via html-to-image.
+          Must be rendered (not display:none) so html-to-image can capture it. */}
+      <div
+        ref={infographicRef}
+        className="absolute -left-[9999px] top-0"
+        style={{ width: 600 }}
+        aria-hidden="true"
+      >
         <DNARenderer dna={post.dna} />
       </div>
 

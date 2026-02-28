@@ -16,7 +16,7 @@ export function AnimatedFootnote({ dna, colors }: AnimatedTextProps) {
   const frame = useCurrentFrame()
   if (!dna.content.footnotes) return null
 
-  const opacity = interpolate(frame, [75, 85], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  const opacity = interpolate(frame, [160, 190], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
 
   return (
     <div

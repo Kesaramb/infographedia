@@ -14,8 +14,8 @@ interface AnimatedTextProps {
 
 export function AnimatedTitle({ dna, colors }: AnimatedTextProps) {
   const frame = useCurrentFrame()
-  const opacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: 'clamp' })
-  const translateY = interpolate(frame, [0, 15], [20, 0], { extrapolateRight: 'clamp' })
+  const opacity = interpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' })
+  const translateY = interpolate(frame, [0, 30], [20, 0], { extrapolateRight: 'clamp' })
 
   return (
     <div

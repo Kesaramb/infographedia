@@ -13,8 +13,11 @@ export const AIAgentConfig: GlobalConfig = {
     group: 'Settings',
   },
   access: {
-    read: () => true,
-    update: ({ req }) => !!req.user,
+    read: () => true, // Config read by the AI pipeline (server-side)
+    update: ({ req }) => {
+      if (!req.user) return false
+      return (req.user as { role?: string }).role === 'admin'
+    },
   },
   fields: [
     // ── Model Configuration ──────────────────────────────────────────
