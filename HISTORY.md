@@ -541,7 +541,7 @@ This iteration had three phases: Admin AI Configuration, Sticky Prompt Engineeri
 #### Phase 3: Remotion Player Integration
 
 - **Remotion packages installed**: `remotion` 4.0.429, `@remotion/player` 4.0.429
-- **Constants** (`src/components/remotion/constants.ts`) - FPS: 30, Duration: 90 frames (3s), Canvas: 600x800
+- **Constants** (`src/components/remotion/constants.ts`) - FPS: 30, Duration: 240 frames (8s), Canvas: 600x800
 - **8 animated SVG chart compositions** (`src/components/remotion/compositions/`):
 
 | Component | File | Animation |
@@ -559,16 +559,19 @@ This iteration had three phases: Admin AI Configuration, Sticky Prompt Engineeri
 
 | Block | Timing | Effect |
 |-------|--------|--------|
-| AnimatedTitle | Frames 0-15 | Fade in + slide up |
-| AnimatedSubtitle | Frames 10-25 | Fade in (70% max opacity) |
-| AnimatedHook | Frames 15-35 | Fade in + scale (accent color) |
-| AnimatedFootnote | Frames 75-85 | Fade in (50% max opacity) |
-| AnimatedSourceBadge | Frames 80-90 | Source names fade in as badges |
+| AnimatedTitle | Frames 0-30 | Fade in + slide up |
+| AnimatedSubtitle | Frames 20-50 | Fade in (70% max opacity) |
+| AnimatedHook | Frames 40-70 | Fade in + scale (accent color) |
+| AnimatedFootnote | Frames 160-190 | Fade in (50% max opacity) |
+| AnimatedSourceBadge | Frames 180-210 | Source names fade in as badges |
 
 - **Chart component map** (`src/components/remotion/component-map.ts`) - Maps DNA chartType to animated compositions
 - **Root composition** (`src/components/remotion/infographic-composition.tsx`) - Orchestrates: title > subtitle > hook > chart > footnote > sources
 - **AnimatedDNARenderer** (`src/components/remotion/animated-dna-renderer.tsx`) - Remotion `<Player>` wrapper:
-  - Auto-plays, loops, no controls (clean feed experience)
+  - Auto-plays once (`loop={false}`), no controls (clean feed experience)
+  - After 8s animation ends, swaps to static `<DNARenderer>` so the infographic stays visible
+  - Replay button (top-right) remounts the Player for re-watch
+  - Timer-based completion detection (`setTimeout`) — more reliable than Remotion's `ended` event
   - Responsive width with `aspectRatio: 600/800`
   - `acknowledgeRemotionLicense` prop set
   - Lazy-loaded via `next/dynamic` with `{ ssr: false }`
@@ -620,11 +623,50 @@ This iteration had three phases: Admin AI Configuration, Sticky Prompt Engineeri
 - **Raw SVG over Recharts for Remotion**: Recharts components can't be controlled frame-by-frame. Each animated chart uses raw SVG paths, rects, and circles driven by `useCurrentFrame()` + `interpolate()` / `spring()`.
 - **@remotion/player over @remotion/renderer**: Player is lightweight (inline React component, no FFmpeg). We only need animated playback in the feed, not video file export.
 - **Static renderer preserved hidden**: `html-to-image` can't capture Remotion's canvas-based Player, so the original DNARenderer is kept in a hidden div as the export target.
-- **Payload Globals for AI config**: Singletons stored in `payload-kv` table (no migration needed). 30s TTL cache avoids DB hits on every generation while staying responsive to admin changes.
+- **Payload Globals for AI config**: Globals with multi-select and array fields use dedicated database tables (NOT just `payload-kv`). The `ai_agent_config` table plus related tables for `allowed_chart_types`, `allowed_themes`, and `few_shot_examples` require a proper database migration. 30s TTL cache avoids DB hits on every generation while staying responsive to admin changes.
 - **Engagement rules in system prompt**: Rather than building a separate "engagement scoring" service, we encode virality knowledge directly into the AI's system prompt as generation-time constraints.
 
 ### Production Database Note
-The AIAgentConfig Global uses Payload's `payload-kv` table (key-value store for globals). No SQL migration is needed — Payload auto-creates the kv entry on first access.
+**CORRECTION**: The AIAgentConfig Global does NOT use `payload-kv`. Because it has multi-select fields (`allowedChartTypes`, `allowedThemes`) and array fields (`fewShotExamples`), Payload creates dedicated tables: `ai_agent_config`, `ai_agent_config_allowed_chart_types`, `ai_agent_config_allowed_themes`, `ai_agent_config_few_shot_examples`. A database migration IS required. The `users.role` column also requires migration. Run `npx payload migrate` on production after deploying Sprint 13 code.
+
+### Bugs Fixed Post-Sprint 13
+
+1. **Remotion blank screen after animation ends**: When `loop={false}`, Remotion resets all `useCurrentFrame()` hooks to frame 0 — making the entire infographic invisible (opacity: 0, height: 0, translateY: 20px). **Fix**: After animation completes (detected via `setTimeout`), swap from `<Player>` to static `<DNARenderer>` which always shows the fully populated infographic. Replay button re-mounts the Player.
+
+2. **Animation too fast (3s)**: Users couldn't read the content. **Fix**: Extended from 90 frames (3s) to 240 frames (8s) at 30fps. Staggered entry: Title (0-30) → Subtitle (20-50) → Hook (40-70) → Charts (60-150) → Footnote (160-190) → Sources (180-210).
+
+3. **PNG download broken with `className="hidden"`**: `html-to-image` can't capture `display: none` elements. **Fix**: Changed to `className="absolute -left-[9999px] top-0"` with `style={{ width: 600 }}` — offscreen but in the DOM.
+
+4. **AI Agent Config "Not Found" in admin**: The migration for Sprint 13 was never generated. Production was missing the `ai_agent_config` tables, `users.role` column, and `comments` table. **Fix**: Generated idempotent migration (`20260228_192300.ts`) with `IF NOT EXISTS` / `DO $$ BEGIN...EXCEPTION` guards for safe application on the already-patched production database.
+
+---
+
+## Iteration 14: Admin Guide Page & Role-Based Access
+
+**Date**: March 2026
+**Status**: Complete
+
+### What Was Built
+- **AdminGuard component** (`src/components/ui/admin-guard.tsx`) — client-side route guard that redirects non-admin users to `/`
+- **Guide page** (`src/app/(app)/guide/page.tsx`) — admin-only getting started guide rendered in glassmorphism UI:
+  - Quick Start (prerequisites, local setup, env vars, seeding)
+  - User Roles (permissions table, promote-to-admin SQL)
+  - Using the App (browsing, creating, iterating, downloading, interactions)
+  - Admin Panel (collections, AI config fields)
+  - Architecture (DNA pattern explanation)
+  - Production (deployment commands, server info)
+- **`role` field on AuthUser** (`src/hooks/use-auth.tsx`) — `role: 'admin' | 'user'` exposed in client auth context
+- **Guide link in sidebar** (`src/components/ui/sidebar.tsx`) — conditionally shown when `user.role === 'admin'`
+- **GUIDE.md** — standalone markdown version of the guide
+
+### Key Files Created/Modified
+| File | Action |
+|------|--------|
+| `src/components/ui/admin-guard.tsx` | NEW |
+| `src/app/(app)/guide/page.tsx` | NEW |
+| `GUIDE.md` | NEW |
+| `src/hooks/use-auth.tsx` | MODIFIED — added role to AuthUser |
+| `src/components/ui/sidebar.tsx` | MODIFIED — admin-only Guide link |
 
 ---
 
@@ -654,11 +696,11 @@ The AIAgentConfig Global uses Payload's `payload-kv` table (key-value store for 
 
 ---
 
-## Current State (Post-Iteration 13)
+## Current State (Post-Iteration 14)
 
 ### What's Working
 - Full feed with infinite scroll and 9 seed infographics
-- **Animated infographics** in feed and detail view (Remotion Player, 30fps, 3s loop)
+- **Animated infographics** in feed and detail view (Remotion Player, 30fps, 8s play-once with static swap)
 - All 8 chart types rendering as both static (Recharts) and animated (raw SVG + Remotion)
 - AI generation pipeline (Claude + web search grounding) with **admin-configurable settings**
 - **Sticky generation engine** with engagement rules, hook field, and optimized prompts
@@ -670,6 +712,8 @@ The AIAgentConfig Global uses Payload's `payload-kv` table (key-value store for 
 - Session-based authentication (login, register, logout)
 - All navigation routes (Home, Search, Activity, Profile, Edit Profile)
 - Payload CMS admin panel at `/admin` with AI Agent Config global
+- **Admin-only guide page** at `/guide` with role-based access control
+- **AdminGuard** component for protecting admin routes
 - Production deployment on HestiaCP with PM2
 - GitHub repository at https://github.com/Kesaramb/infographedia
 
