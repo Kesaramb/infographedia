@@ -1,0 +1,51 @@
+{
+  "name": "infographedia",
+  "version": "1.0.0",
+  "description": "AI-powered infographic platform with community iteration",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "generate:types": "payload generate:types",
+    "db:migrate": "payload migrate",
+    "db:seed": "node --env-file=.env --import tsx/esm scripts/seed.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.29.3",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@payloadcms/db-postgres": "^3.77.0",
+    "@payloadcms/next": "^3.77.0",
+    "@payloadcms/richtext-lexical": "^3.77.0",
+    "@payloadcms/ui": "^3.77.0",
+    "@tailwindcss/postcss": "^4.2.1",
+    "framer-motion": "^12.34.3",
+    "graphql": "^16.13.0",
+    "html-to-image": "^1.11.13",
+    "lucide-react": "^0.575.0",
+    "next": "^15.4.11",
+    "payload": "^3.77.0",
+    "postcss": "^8.5.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "recharts": "^3.7.0",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4.2.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^10.0.2",
+    "eslint-config-next": "^16.1.6",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

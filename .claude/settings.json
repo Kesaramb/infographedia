@@ -1,0 +1,50 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'BRANCH=$(git -C /Users/mbkesara/Projects/infographedia rev-parse --abbrev-ref HEAD 2>/dev/null); if [ \"$BRANCH\" = \"main\" ] || [ \"$BRANCH\" = \"master\" ]; then echo \"{\\\"block\\\": true, \\\"message\\\": \\\"Cannot edit directly on $BRANCH. Create a feature branch first.\\\"}\"; exit 2; fi; echo \"{\\\"block\\\": false}\"'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=\"$TOOL_INPUT_file_path\"; if [[ \"$FILE\" == *.ts ]] || [[ \"$FILE\" == *.tsx ]]; then echo \"{\\\"feedback\\\": \\\"Remember: TypeScript strict mode. No any types. Validate DNA with Zod.\\\"}\"; fi'"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(pnpm dev)",
+      "Bash(pnpm build)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm db:*)",
+      "Bash(pnpm dlx create-payload-app*)",
+      "Bash(pnpm add*)",
+      "Bash(pnpm install*)",
+      "Bash(npx*)",
+      "Bash(git *)",
+      "Bash(mkdir *)",
+      "Bash(ls *)",
+      "Bash(cat *)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(pnpm publish*)"
+    ]
+  }
+}
