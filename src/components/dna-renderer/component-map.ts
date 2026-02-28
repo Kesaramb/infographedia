@@ -4,6 +4,7 @@ import type { DNAComponentProps } from './types'
 // Blocks
 import { TitleBlock } from './blocks/title-block'
 import { SubtitleBlock } from './blocks/subtitle-block'
+import { HookBlock } from './blocks/hook-block'
 import { FootnoteBlock } from './blocks/footnote-block'
 import { SourceBadge } from './blocks/source-badge'
 
@@ -26,6 +27,7 @@ export const COMPONENT_MAP: Record<string, ComponentType<DNAComponentProps>> = {
   // Text blocks
   'title': TitleBlock,
   'subtitle': SubtitleBlock,
+  'hook': HookBlock,
   'footnote': FootnoteBlock,
   'source-badge': SourceBadge,
 

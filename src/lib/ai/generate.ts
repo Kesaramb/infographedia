@@ -6,7 +6,8 @@ type ContentBlock = Anthropic.Messages.ContentBlock
 type ToolUseBlock = Extract<ContentBlock, { type: 'tool_use' }>
 type TextBlock = Extract<ContentBlock, { type: 'text' }>
 import { getAnthropicClient } from './client'
-import { SYSTEM_PROMPT, buildNewPrompt, buildIterationPrompt } from './prompts'
+import { buildSystemPrompt, buildNewPrompt, buildIterationPrompt } from './prompts'
+import { getAIConfig } from './config'
 import { AI_TOOLS } from './tools'
 import { executeWebSearch } from './search'
 import { parseAIResponse, buildCorrectionPrompt } from './parse'
@@ -15,16 +16,13 @@ import { parseAIResponse, buildCorrectionPrompt } from './parse'
 // Core DNA Generation Pipeline
 //
 // This is the heart of Infographedia. It:
-// 1. Builds a prompt from user input + optional parent DNA
-// 2. Sends it to Claude with web_search tool access
-// 3. Handles the tool-calling loop (search → extract → generate)
-// 4. Validates the output against the Zod schema
-// 5. Retries once on validation failure
+// 1. Reads AI config from the admin-editable Payload global
+// 2. Builds a prompt from user input + optional parent DNA
+// 3. Sends it to Claude with web_search tool access
+// 4. Handles the tool-calling loop (search -> extract -> generate)
+// 5. Validates the output against the Zod schema
+// 6. Retries once on validation failure
 // ============================================================
-
-const MODEL = 'claude-sonnet-4-20250514'
-const MAX_TOKENS = 4096
-const MAX_TOOL_ROUNDS = 5 // prevent infinite tool-calling loops
 
 export interface GenerateResult {
   success: true
@@ -45,10 +43,14 @@ export type GenerateResponse = GenerateResult | GenerateError
  */
 export async function generateDNA(
   prompt: string,
-  parentDNA?: InfographicDNA
+  parentDNA?: InfographicDNA,
 ): Promise<GenerateResponse> {
   const client = getAnthropicClient()
   const searchQueries: string[] = []
+
+  // Fetch admin-configured AI settings
+  const aiConfig = await getAIConfig()
+  const systemPrompt = buildSystemPrompt(aiConfig)
 
   // Build the user message
   const userMessage = parentDNA
@@ -59,24 +61,28 @@ export async function generateDNA(
     { role: 'user', content: userMessage },
   ]
 
+  // Tools: only include web_search if admin has it enabled
+  const tools = aiConfig.enableWebSearch ? AI_TOOLS : []
+
   try {
     // --- Main generation loop with tool calling ---
     let response = await client.messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      system: SYSTEM_PROMPT,
-      tools: AI_TOOLS,
+      model: aiConfig.model,
+      max_tokens: aiConfig.maxTokens,
+      temperature: aiConfig.temperature,
+      system: systemPrompt,
+      tools,
       messages,
     })
 
     // Handle tool-calling loop
     let toolRounds = 0
-    while (response.stop_reason === 'tool_use' && toolRounds < MAX_TOOL_ROUNDS) {
+    while (response.stop_reason === 'tool_use' && toolRounds < aiConfig.maxToolRounds) {
       toolRounds++
 
       // Extract tool calls from the response
       const toolUseBlocks = response.content.filter(
-        (block): block is ToolUseBlock => block.type === 'tool_use'
+        (block): block is ToolUseBlock => block.type === 'tool_use',
       )
 
       // Execute each tool call
@@ -108,15 +114,16 @@ export async function generateDNA(
       messages.push({ role: 'user', content: toolResults })
 
       response = await client.messages.create({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        system: SYSTEM_PROMPT,
-        tools: AI_TOOLS,
+        model: aiConfig.model,
+        max_tokens: aiConfig.maxTokens,
+        temperature: aiConfig.temperature,
+        system: systemPrompt,
+        tools,
         messages,
       })
     }
 
-    if (toolRounds >= MAX_TOOL_ROUNDS) {
+    if (toolRounds >= aiConfig.maxToolRounds) {
       return {
         success: false,
         error: 'AI entered an infinite tool-calling loop. Please try a simpler prompt.',
@@ -126,7 +133,7 @@ export async function generateDNA(
 
     // --- Extract text from the final response ---
     const textBlocks = response.content.filter(
-      (block): block is TextBlock => block.type === 'text'
+      (block): block is TextBlock => block.type === 'text',
     )
 
     const responseText = textBlocks.map((b) => b.text).join('\n')
@@ -153,16 +160,16 @@ export async function generateDNA(
     // --- Retry once with correction prompt ---
     const correctionMessage = buildCorrectionPrompt(
       parseResult.error,
-      parseResult.rawText
+      parseResult.rawText,
     )
 
     messages.push({ role: 'assistant', content: response.content })
     messages.push({ role: 'user', content: correctionMessage })
 
     const retryResponse = await client.messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      system: SYSTEM_PROMPT,
+      model: aiConfig.model,
+      max_tokens: aiConfig.maxTokens,
+      system: systemPrompt,
       messages,
     })
 

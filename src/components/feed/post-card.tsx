@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { PostHeader } from './post-header'
 import { ActionToolbar } from './action-toolbar'
@@ -10,6 +11,12 @@ import { DNARenderer } from '@/components/dna-renderer'
 import { useModal } from '@/components/modals/modal-provider'
 import { useDownloadInfographic } from '@/hooks/use-download-infographic'
 import type { InfographicDNA } from '@/lib/dna/schema'
+
+// Lazy-load Remotion player (no SSR — canvas APIs)
+const AnimatedDNARenderer = dynamic(
+  () => import('@/components/remotion/animated-dna-renderer').then((m) => m.AnimatedDNARenderer),
+  { ssr: false },
+)
 
 export interface PostCardData {
   id: number | string
@@ -72,16 +79,18 @@ export function PostCard({ post }: PostCardProps) {
         createdAt={post.createdAt}
       />
 
-      {/* Infographic — live DNA render with watermark overlay.
-          Using div+onClick instead of <Link> to avoid <a> inside <a>
-          (SourceBadge renders <a> tags inside DNARenderer). */}
+      {/* Infographic — animated player for feed display */}
       <div
-        ref={infographicRef}
         className="block relative cursor-pointer"
         onClick={() => router.push(`/post/${post.id}`)}
       >
-        <DNARenderer dna={post.dna} />
+        <AnimatedDNARenderer dna={post.dna} />
         <WatermarkBadge />
+      </div>
+
+      {/* Hidden static renderer — used for PNG export via html-to-image */}
+      <div ref={infographicRef} className="hidden">
+        <DNARenderer dna={post.dna} />
       </div>
 
       {/* Action Toolbar */}

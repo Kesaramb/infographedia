@@ -11,6 +11,7 @@ import { Media } from './src/collections/Media'
 import { Likes } from './src/collections/Likes'
 import { Saves } from './src/collections/Saves'
 import { Comments } from './src/collections/Comments'
+import { AIAgentConfig } from './src/globals/AIAgentConfig'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -23,6 +24,7 @@ export default buildConfig({
     },
   },
   collections: [Users, Posts, Media, Likes, Saves, Comments],
+  globals: [AIAgentConfig],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || 'INFOGRAPHEDIA_DEV_SECRET_CHANGE_ME',
   typescript: {

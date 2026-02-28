@@ -363,31 +363,317 @@ pm2 logs infographedia --lines 50
 
 ---
 
-## Current State (Post-Iteration 8)
+## Iteration 9: Like / Save / Share System
+
+**Date**: February 2026
+**Status**: Complete
+
+### What Was Built
+- **Likes collection** (`src/collections/Likes.ts`) - User + Post relationship with unique constraint
+- **Saves collection** (`src/collections/Saves.ts`) - User + Post bookmark relationship
+- **Like API** (`src/app/api/posts/[id]/like/route.ts`) - Toggle like with optimistic count update
+- **Save API** (`src/app/api/posts/[id]/save/route.ts`) - Toggle save with optimistic count update
+- **Share API** (`src/app/api/posts/[id]/share/route.ts`) - Fire-and-forget counter increment (no auth required)
+- **Batch interactions API** (`src/app/api/user/interactions/route.ts`) - `GET ?postIds=1,2,3` returns `{ liked: [], saved: [] }` to avoid N+1 queries
+- **Optimistic toggle hook** (`src/hooks/use-optimistic-action.ts`) - Instant UI update with server rollback on failure
+- ActionToolbar wired to real API calls with optimistic UI
+
+### Key Files Created
+| File | Purpose |
+|------|---------|
+| `src/collections/Likes.ts` | Like relationship collection |
+| `src/collections/Saves.ts` | Save/bookmark collection |
+| `src/app/api/posts/[id]/like/route.ts` | Toggle like endpoint |
+| `src/app/api/posts/[id]/save/route.ts` | Toggle save endpoint |
+| `src/app/api/posts/[id]/share/route.ts` | Share counter endpoint |
+| `src/app/api/user/interactions/route.ts` | Batch interaction check |
+| `src/hooks/use-optimistic-action.ts` | Optimistic UI toggle hook |
+
+### Key Decisions
+- Like/save use authenticated toggle (create/delete pattern)
+- Share is unauthenticated fire-and-forget (no login required to share)
+- Batch interaction endpoint avoids N+1 when loading feed with multiple posts
+- Metrics stored directly on Posts collection for fast feed rendering
+
+---
+
+## Iteration 10: Comments System
+
+**Date**: February 2026
+**Status**: Complete
+
+### What Was Built
+- **Comments collection** (`src/collections/Comments.ts`) - author, post, body (max 500 chars)
+- **Comments API** (`src/app/api/posts/[id]/comments/route.ts`) - Full CRUD:
+  - `GET` - Paginated comments sorted newest-first, author populated
+  - `POST` - Auth-required, auto-increments `metrics.comments`
+  - `DELETE` - Ownership check (only author can delete), decrements counter
+- **CommentSection** (`src/components/comments/comment-section.tsx`) - Full comment UI with auth-gated input, pagination ("Load more"), error handling with retry
+- **CommentItem** (`src/components/comments/comment-item.tsx`) - Avatar, username link, body, time-ago formatting, delete button (own comments only)
+- Posts collection updated with `metrics.comments` field
+- PostDetail page updated to include CommentSection
+
+### Key Files Created
+| File | Purpose |
+|------|---------|
+| `src/collections/Comments.ts` | Comment collection schema |
+| `src/app/api/posts/[id]/comments/route.ts` | Comment CRUD endpoint |
+| `src/components/comments/comment-section.tsx` | Comment list + input UI |
+| `src/components/comments/comment-item.tsx` | Individual comment display |
+
+---
+
+## Iteration 11: PNG Export & Share
+
+**Date**: February 2026
+**Status**: Complete
+
+### What Was Built
+- **Download hook** (`src/hooks/use-download-infographic.ts`) - Full PNG export pipeline:
+  - Uses `html-to-image` library (`toPng`) for DOM capture
+  - 2x pixel ratio for retina-quality screenshots
+  - Branded footer strip rendered via Canvas API with Infographedia logo + post URL
+  - Safe filename generation (alphanumeric + dash, max 50 chars)
+  - Toast notification on success/failure
+- **Share functionality** in ActionToolbar:
+  - Native Web Share API (with clipboard copy fallback)
+  - Share counter increment via `/api/posts/[id]/share`
+
+### Key Files Created/Modified
+| File | Action |
+|------|--------|
+| `src/hooks/use-download-infographic.ts` | NEW - PNG export hook |
+| `src/components/feed/action-toolbar.tsx` | MODIFIED - share + download wired |
+| `src/components/feed/post-card.tsx` | MODIFIED - `ref` for DOM capture |
+| `src/app/(app)/post/[id]/post-detail.tsx` | MODIFIED - download button wired |
+
+### Dependencies Added
+- `html-to-image` ^1.11.13
+
+### Key Decisions
+- Chose `html-to-image` over Playwright for client-side screenshots (no server round-trip)
+- Branded footer rendered via Canvas composition (not DOM manipulation)
+- Hidden static DNARenderer preserved for screenshot capture (Remotion Player can't be captured by html-to-image)
+
+---
+
+## Iteration 12: UX Polish & Micro-interactions
+
+**Date**: February 2026
+**Status**: Complete
+
+### What Was Built
+- **Toast notification system** (`src/components/ui/toast.tsx`) - Provider + `useToast` hook:
+  - Three variants: success (green), error (red), info (neutral)
+  - Auto-dismiss after 3 seconds
+  - Spring animations via Framer Motion with AnimatePresence
+  - Positioned above mobile nav (bottom-20) or desktop bottom bar (bottom-6)
+- **Feed card animations** in `feed.tsx`:
+  - Cards fade in and slide up on scroll (`whileInView={{ opacity: 1, y: 0 }}`)
+  - Stagger delay: `Math.min(index * 0.08, 0.4)` (max 400ms cap)
+  - `viewport={{ once: true, margin: '-50px' }}` for efficient triggering
+- **Action toolbar micro-interactions** in `action-toolbar.tsx`:
+  - Like heart: scale bounce `[1, 1.3, 0.9, 1.1, 1]` on toggle
+  - Save bookmark: bounce down `y: [0, 3, -1, 0]` on toggle
+  - Animations only trigger on state transitions (not on mount)
+- **Activity page animations** - Cards animate in with stagger
+
+### Dependencies Added
+- `framer-motion` ^12.34.3
+
+### Key Decisions
+- Used `whileInView` instead of `animate` for feed cards (handles headless/hidden contexts better and is more appropriate for infinite scroll)
+- Toast system uses Framer Motion's spring physics for natural feel
+- Animation stagger capped at 400ms to prevent late cards from feeling sluggish
+
+### Bug Fixed
+- Feed animations stuck at `opacity: 0` in headless preview browsers because `document.visibilityState` was `"hidden"`. Fixed by switching from `animate` to `whileInView` pattern.
+
+---
+
+## Iteration 13: Sticky Generation Engine
+
+**Date**: February 2026
+**Status**: Complete
+
+### What Was Built
+
+This iteration had three phases: Admin AI Configuration, Sticky Prompt Engineering, and Remotion Player Integration.
+
+#### Phase 1: Admin AI Configuration
+
+- **AIAgentConfig Global** (`src/globals/AIAgentConfig.ts`) - Payload CMS Global accessible at `/admin/globals/ai-agent-config`:
+  - Model selector (Claude Opus 4, Sonnet 4, Haiku 3.5)
+  - Temperature (0-2, step 0.1)
+  - Max tokens (1024-16384)
+  - Max tool rounds (1-15)
+  - Web search toggle (checkbox)
+  - System prompt (full textarea editor, 20 rows)
+  - Allowed chart types (multi-select, all 8 types)
+  - Allowed themes (multi-select, all 7 themes)
+  - Few-shot examples (array of `{ label, dnaJson }`)
+- **Config fetcher** (`src/lib/ai/config.ts`) - Runtime config loader:
+  - Module-level cache with 30s TTL
+  - Falls back to hardcoded DEFAULTS when Payload unavailable (e.g., during build)
+  - All fields validated with typeof guards
+- **generate.ts rewrite** - Replaced all hardcoded constants (MODEL, MAX_TOKENS, MAX_TOOL_ROUNDS) with `getAIConfig()` calls. Tools conditionally empty when `enableWebSearch` is false.
+- **payload.config.ts** - Added `globals: [AIAgentConfig]`
+
+#### Phase 2: Sticky Prompt Engineering
+
+- **System prompt overhaul** (`src/lib/ai/prompts.ts`):
+  - Renamed `SYSTEM_PROMPT` to `DEFAULT_SYSTEM_PROMPT` (exported)
+  - Added comprehensive **ENGAGEMENT RULES** section:
+    - Title optimization (number-first, tension, specificity)
+    - Hook generation (scroll-stopping one-liner from the data)
+    - Chart type selection (prefer visual variety over defaults)
+    - Data presentation (round numbers, show context, use comparisons)
+  - `buildSystemPrompt(aiConfig)` assembles: base prompt + allowed types/themes constraints + few-shot examples
+  - Enhanced `buildNewPrompt()` with step-by-step engagement instructions
+- **Hook field in DNA schema** (`src/lib/dna/schema.ts`):
+  - Added `hook: z.string().max(100).optional()` to ContentSchema
+  - Purpose: AI-generated scroll-stopping one-liner derived from the data
+- **HookBlock renderer** (`src/components/dna-renderer/blocks/hook-block.tsx`):
+  - Renders hook text in bold italic, accent/primary color
+  - Returns null if no hook present (backward compatible)
+- **Component map updated** (`src/components/dna-renderer/component-map.ts`) - Added `'hook': HookBlock`
+
+#### Phase 3: Remotion Player Integration
+
+- **Remotion packages installed**: `remotion` 4.0.429, `@remotion/player` 4.0.429
+- **Constants** (`src/components/remotion/constants.ts`) - FPS: 30, Duration: 90 frames (3s), Canvas: 600x800
+- **8 animated SVG chart compositions** (`src/components/remotion/compositions/`):
+
+| Component | File | Animation |
+|-----------|------|-----------|
+| AnimatedBarChart | `animated-bar-chart.tsx` | Bars spring-grow from bottom with stagger |
+| AnimatedPieChart | `animated-pie-chart.tsx` | Arc paths sweep in sequentially |
+| AnimatedDonutChart | `animated-donut-chart.tsx` | Arc paths with SVG mask for inner ring |
+| AnimatedLineChart | `animated-line-chart.tsx` | Line draws via strokeDasharray/offset |
+| AnimatedAreaChart | `animated-area-chart.tsx` | ClipPath rect reveals left-to-right |
+| AnimatedStatCard | `animated-stat-card.tsx` | Number counts from 0 with scale-in |
+| AnimatedTimeline | `animated-timeline.tsx` | Dots + labels spring in sequentially |
+| AnimatedGroupedBar | `animated-grouped-bar.tsx` | Multi-series bars spring-grow with legend |
+
+- **5 animated text blocks** (`src/components/remotion/blocks/`):
+
+| Block | Timing | Effect |
+|-------|--------|--------|
+| AnimatedTitle | Frames 0-15 | Fade in + slide up |
+| AnimatedSubtitle | Frames 10-25 | Fade in (70% max opacity) |
+| AnimatedHook | Frames 15-35 | Fade in + scale (accent color) |
+| AnimatedFootnote | Frames 75-85 | Fade in (50% max opacity) |
+| AnimatedSourceBadge | Frames 80-90 | Source names fade in as badges |
+
+- **Chart component map** (`src/components/remotion/component-map.ts`) - Maps DNA chartType to animated compositions
+- **Root composition** (`src/components/remotion/infographic-composition.tsx`) - Orchestrates: title > subtitle > hook > chart > footnote > sources
+- **AnimatedDNARenderer** (`src/components/remotion/animated-dna-renderer.tsx`) - Remotion `<Player>` wrapper:
+  - Auto-plays, loops, no controls (clean feed experience)
+  - Responsive width with `aspectRatio: 600/800`
+  - `acknowledgeRemotionLicense` prop set
+  - Lazy-loaded via `next/dynamic` with `{ ssr: false }`
+
+- **Feed integration** (`post-card.tsx`, `post-detail.tsx`):
+  - AnimatedDNARenderer replaces DNARenderer as the visible infographic
+  - Static DNARenderer kept hidden (`className="hidden"`) for PNG export compatibility
+
+### Key Files Created
+| File | Purpose |
+|------|---------|
+| `src/globals/AIAgentConfig.ts` | Admin-editable AI settings |
+| `src/lib/ai/config.ts` | Config fetcher with 30s TTL cache |
+| `src/components/dna-renderer/blocks/hook-block.tsx` | Hook text renderer |
+| `src/components/remotion/constants.ts` | Video config constants |
+| `src/components/remotion/animated-dna-renderer.tsx` | Remotion Player wrapper |
+| `src/components/remotion/infographic-composition.tsx` | Root composition |
+| `src/components/remotion/component-map.ts` | Animated chart registry |
+| `src/components/remotion/blocks/animated-title.tsx` | Animated title block |
+| `src/components/remotion/blocks/animated-subtitle.tsx` | Animated subtitle block |
+| `src/components/remotion/blocks/animated-hook.tsx` | Animated hook block |
+| `src/components/remotion/blocks/animated-footnote.tsx` | Animated footnote block |
+| `src/components/remotion/blocks/animated-source-badge.tsx` | Animated source badges |
+| `src/components/remotion/compositions/animated-bar-chart.tsx` | Animated bar chart |
+| `src/components/remotion/compositions/animated-pie-chart.tsx` | Animated pie chart |
+| `src/components/remotion/compositions/animated-donut-chart.tsx` | Animated donut chart |
+| `src/components/remotion/compositions/animated-line-chart.tsx` | Animated line chart |
+| `src/components/remotion/compositions/animated-area-chart.tsx` | Animated area chart |
+| `src/components/remotion/compositions/animated-stat-card.tsx` | Animated stat card |
+| `src/components/remotion/compositions/animated-timeline.tsx` | Animated timeline |
+| `src/components/remotion/compositions/animated-grouped-bar.tsx` | Animated grouped bars |
+
+### Key Files Modified
+| File | Change |
+|------|--------|
+| `payload.config.ts` | Added AIAgentConfig global |
+| `src/lib/ai/generate.ts` | Replaced hardcoded constants with getAIConfig() |
+| `src/lib/ai/prompts.ts` | Added engagement rules, hook schema, buildSystemPrompt() |
+| `src/lib/dna/schema.ts` | Added `hook` field to ContentSchema |
+| `src/components/dna-renderer/component-map.ts` | Added HookBlock mapping |
+| `src/components/feed/post-card.tsx` | AnimatedDNARenderer + hidden static renderer |
+| `src/app/(app)/post/[id]/post-detail.tsx` | AnimatedDNARenderer + hidden static renderer |
+
+### Dependencies Added
+- `remotion` 4.0.429
+- `@remotion/player` 4.0.429
+
+### Key Decisions
+- **Raw SVG over Recharts for Remotion**: Recharts components can't be controlled frame-by-frame. Each animated chart uses raw SVG paths, rects, and circles driven by `useCurrentFrame()` + `interpolate()` / `spring()`.
+- **@remotion/player over @remotion/renderer**: Player is lightweight (inline React component, no FFmpeg). We only need animated playback in the feed, not video file export.
+- **Static renderer preserved hidden**: `html-to-image` can't capture Remotion's canvas-based Player, so the original DNARenderer is kept in a hidden div as the export target.
+- **Payload Globals for AI config**: Singletons stored in `payload-kv` table (no migration needed). 30s TTL cache avoids DB hits on every generation while staying responsive to admin changes.
+- **Engagement rules in system prompt**: Rather than building a separate "engagement scoring" service, we encode virality knowledge directly into the AI's system prompt as generation-time constraints.
+
+### Production Database Note
+The AIAgentConfig Global uses Payload's `payload-kv` table (key-value store for globals). No SQL migration is needed — Payload auto-creates the kv entry on first access.
+
+---
+
+## Production Fixes (Post-Deployment)
+
+**Date**: February 28, 2026
+
+### Fix 1: Missing `metrics_comments` Column (500 Error)
+- **Symptom**: `column posts.metrics_comments does not exist` after deploying Iteration 10
+- **Root Cause**: Migration file tried to CREATE ALL tables from scratch (failed because they existed)
+- **Fix**: Manual SQL — `ALTER TABLE posts ADD COLUMN IF NOT EXISTS metrics_comments numeric DEFAULT 0` + `CREATE TABLE IF NOT EXISTS` for likes, saves, comments with all indexes and foreign keys. Inserted migration record into `payload_migrations`.
+
+### Fix 2: Registration "Not Allowed" Error
+- **Symptom**: New users got "You are not allowed to perform this action" when registering
+- **Root Cause**: Users collection missing `create: () => true` in access control. Payload defaults to requiring auth for creation.
+- **Fix**: Added `create: () => true` to Users collection access rules.
+
+---
+
+## GitHub Repository
+
+**Date**: February 28, 2026
+
+- **Repository**: https://github.com/Kesaramb/infographedia (public)
+- **Initial commit**: `v1.0: Infographedia complete (Sprints 1-12)`
+- `.gitignore` updated to exclude `.playwright-mcp/`, `.claude/settings.local.json`, `.claude/plan.md`
+
+---
+
+## Current State (Post-Iteration 13)
 
 ### What's Working
-- Full feed with infinite scroll and 8 seed infographics
-- All 8 chart types rendering correctly from DNA
-- AI generation pipeline (Claude + web search grounding)
+- Full feed with infinite scroll and 9 seed infographics
+- **Animated infographics** in feed and detail view (Remotion Player, 30fps, 3s loop)
+- All 8 chart types rendering as both static (Recharts) and animated (raw SVG + Remotion)
+- AI generation pipeline (Claude + web search grounding) with **admin-configurable settings**
+- **Sticky generation engine** with engagement rules, hook field, and optimized prompts
 - Create and iterate modal flows
+- Like, save, share with optimistic UI
+- Comments system with pagination
+- PNG export with branded footer
+- Toast notifications with Framer Motion animations
 - Session-based authentication (login, register, logout)
 - All navigation routes (Home, Search, Activity, Profile, Edit Profile)
-- Clickable usernames linking to profiles
-- Auth-gated publishing and activity page
-- Payload CMS admin panel at `/admin`
+- Payload CMS admin panel at `/admin` with AI Agent Config global
 - Production deployment on HestiaCP with PM2
+- GitHub repository at https://github.com/Kesaramb/infographedia
 
-### What's NOT Built Yet (see ROADMAP.md)
-- Playwright screenshot service (renderedImage generation)
-- Micro-animations and loading polish (v1.1)
-- AI prompt tuning and theme presets (v1.2)
-- SEO metadata and Open Graph images (v1.3)
-- Trending algorithm and notifications (v1.4)
-- Source verification badges (v1.5)
-- Pro subscription with Stripe (v1.6)
-- Landing page and analytics (v1.7)
-
-### Tech Versions (as of deployment)
+### Tech Versions (as of Iteration 13)
 | Package | Version |
 |---------|---------|
 | Next.js | 15.4.11 |
@@ -395,6 +681,10 @@ pm2 logs infographedia --lines 50
 | React | 19.2.4 |
 | Tailwind CSS | 4.x |
 | Recharts | 3.7.0 |
+| Remotion | 4.0.429 |
+| @remotion/player | 4.0.429 |
+| Framer Motion | 12.34.3 |
+| html-to-image | 1.11.13 |
 | Zod | 4.x (`import { z } from 'zod/v4'`) |
 | Anthropic SDK | 0.78.0 |
 | TypeScript | 5.9.3 |

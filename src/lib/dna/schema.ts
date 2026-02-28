@@ -56,6 +56,7 @@ export const DataPointSchema = z.object({
 export const ContentSchema = z.object({
   title: z.string().min(1).max(120),
   subtitle: z.string().max(200).optional(),
+  hook: z.string().max(100).optional(), // scroll-stopping one-liner from the data
   data: z.array(DataPointSchema).min(1),
   sources: z.array(SourceSchema).min(1),
   footnotes: z.string().max(500).optional(),

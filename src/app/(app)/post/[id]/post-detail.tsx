@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { DNARenderer } from '@/components/dna-renderer'
 import { PostHeader } from '@/components/feed/post-header'
 import { ActionToolbar } from '@/components/feed/action-toolbar'
@@ -11,6 +12,12 @@ import { CommentSection } from '@/components/comments/comment-section'
 import { useDownloadInfographic } from '@/hooks/use-download-infographic'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+
+// Lazy-load Remotion player (no SSR — canvas APIs)
+const AnimatedDNARenderer = dynamic(
+  () => import('@/components/remotion/animated-dna-renderer').then((m) => m.AnimatedDNARenderer),
+  { ssr: false },
+)
 
 interface PostDetailProps {
   post: {
@@ -95,10 +102,15 @@ export function PostDetail({ post }: PostDetailProps) {
         parentAuthor={parentAuthor}
       />
 
-      {/* Live DNA render */}
-      <div className="relative" ref={infographicRef}>
-        <DNARenderer dna={post.dna} />
+      {/* Animated infographic */}
+      <div className="relative">
+        <AnimatedDNARenderer dna={post.dna} />
         <WatermarkBadge />
+      </div>
+
+      {/* Hidden static renderer — used for PNG export via html-to-image */}
+      <div ref={infographicRef} className="hidden">
+        <DNARenderer dna={post.dna} />
       </div>
 
       {/* Action toolbar */}
