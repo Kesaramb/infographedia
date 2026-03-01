@@ -59,19 +59,54 @@ export function scoreUsefulness(
 }
 
 /**
+ * Check whether the DNA sources are grounded (real URLs, not hallucinated placeholders).
+ * Returns true only if at least one source has a real-looking URL.
+ */
+function hasGroundedSources(dna: InfographicDNA): boolean {
+  const FAKE_PATTERNS = [
+    'ai knowledge base',
+    'example.com',
+    'placeholder',
+    'search unavailable',
+    'training data',
+    'training knowledge',
+  ]
+
+  return dna.content.sources.some((source) => {
+    const lower = `${source.name} ${source.url}`.toLowerCase()
+    return !FAKE_PATTERNS.some((pattern) => lower.includes(pattern))
+  })
+}
+
+/**
  * Build and store knowledge from a successful generation.
  * Called as a background task after generateDNA() succeeds.
+ *
+ * IMPORTANT: Only stores knowledge when the generation was grounded by
+ * real search results. This prevents poisoning the KB with hallucinated data.
  */
 export async function storeGenerationKnowledge(
   searchQueries: string[],
   searchResultUrls: string[],
   dna: InfographicDNA,
+  searchWasReal: boolean,
 ): Promise<void> {
   // Only store if there were actual searches
   if (searchQueries.length === 0) return
 
   // Don't store if Qdrant/Voyage aren't configured
   if (!process.env.QDRANT_URL || !process.env.VOYAGE_API_KEY) return
+
+  // CRITICAL: Don't store ungrounded data — prevents knowledge base poisoning
+  if (!searchWasReal) {
+    console.log('[knowledge-store] Skipped — web search was not available, data is ungrounded')
+    return
+  }
+
+  if (!hasGroundedSources(dna)) {
+    console.log('[knowledge-store] Skipped — DNA sources appear hallucinated or placeholder')
+    return
+  }
 
   const quality = scoreUsefulness(searchResultUrls, dna)
 
@@ -99,6 +134,7 @@ export async function storeGenerationKnowledge(
   }
 
   await storeKnowledge(point)
+  console.log(`[knowledge-store] Stored: "${point.topic}" (quality: ${(quality * 100).toFixed(0)}%)`)
 }
 
 /** Extract a rough topic from the title (first 2-3 meaningful words) */
