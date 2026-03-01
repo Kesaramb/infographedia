@@ -8,9 +8,11 @@ type TextBlock = Extract<ContentBlock, { type: 'text' }>
 import { getAnthropicClient } from './client'
 import { buildSystemPrompt, buildNewPrompt, buildIterationPrompt } from './prompts'
 import { getAIConfig } from './config'
-import { AI_TOOLS } from './tools'
+import { WEB_SEARCH_TOOL, KNOWLEDGE_BASE_TOOL } from './tools'
 import { executeWebSearch } from './search'
 import { parseAIResponse, buildCorrectionPrompt } from './parse'
+import { searchKnowledge } from '@/lib/knowledge/search'
+import { storeGenerationKnowledge } from '@/lib/knowledge/store'
 
 // ============================================================
 // Core DNA Generation Pipeline
@@ -61,8 +63,10 @@ export async function generateDNA(
     { role: 'user', content: userMessage },
   ]
 
-  // Tools: only include web_search if admin has it enabled
-  const tools = aiConfig.enableWebSearch ? AI_TOOLS : []
+  // Assemble tools based on admin config
+  const tools: Anthropic.Tool[] = []
+  if (aiConfig.enableKnowledgeBase) tools.push(KNOWLEDGE_BASE_TOOL)
+  if (aiConfig.enableWebSearch) tools.push(WEB_SEARCH_TOOL)
 
   try {
     // --- Main generation loop with tool calling ---
@@ -88,7 +92,17 @@ export async function generateDNA(
       // Execute each tool call
       const toolResults: Anthropic.ToolResultBlockParam[] = []
       for (const toolUse of toolUseBlocks) {
-        if (toolUse.name === 'web_search') {
+        if (toolUse.name === 'search_knowledge_base') {
+          const input = toolUse.input as { query: string }
+          searchQueries.push(`[KB] ${input.query}`)
+
+          const kbResult = await searchKnowledge(input.query)
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: toolUse.id,
+            content: kbResult,
+          })
+        } else if (toolUse.name === 'web_search') {
           const input = toolUse.input as { query: string }
           searchQueries.push(input.query)
 
@@ -150,6 +164,13 @@ export async function generateDNA(
     const parseResult = parseAIResponse(responseText)
 
     if (parseResult.success) {
+      // Background: store knowledge for future generations (non-blocking)
+      const webSearchUrls = searchQueries
+        .filter((q) => !q.startsWith('[KB]'))
+        .map(() => '') // URLs extracted from DNA sources below
+      storeGenerationKnowledge(searchQueries, webSearchUrls, parseResult.dna).catch(
+        (err) => console.error('[knowledge-store]', err),
+      )
       return {
         success: true,
         dna: parseResult.dna,
@@ -181,6 +202,10 @@ export async function generateDNA(
     const retryResult = parseAIResponse(retryText)
 
     if (retryResult.success) {
+      // Background: store knowledge for future generations (non-blocking)
+      storeGenerationKnowledge(searchQueries, [], retryResult.dna).catch(
+        (err) => console.error('[knowledge-store]', err),
+      )
       return {
         success: true,
         dna: retryResult.dna,

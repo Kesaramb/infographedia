@@ -6,19 +6,26 @@ The 8 build iterations produce the **raw machinery**. This roadmap layers on the
 
 ---
 
-## v1.0 — "It Works" (Build Iterations 1-8 Complete)
+## v1.0 — "It Works" (Build Iterations 1-15 Complete)
 
-The output of the 8 build iterations. Everything functions end-to-end:
+The output of the build iterations. Everything functions end-to-end:
 
-- ✅ DNA renderer with 8 chart types
-- ✅ AI generation with web search grounding
-- ✅ Infinite scroll feed
+- ✅ DNA renderer with **11 chart types** (bar, pie, line, area, donut, grouped-bar, stat-card, timeline, pictogram, vs-split, map-chart)
+- ✅ **Animated infographics** via Remotion Player (30fps, 8s play-once with static swap)
+- ✅ AI generation with **dual-tool grounding** (Qdrant knowledge base + web search)
+- ✅ **Persistent AI knowledge base** — learns from every generation (Qdrant + Voyage AI embeddings)
+- ✅ Infinite scroll feed with Framer Motion animations
 - ✅ Iterate engine (fork + mutate + publish)
-- ✅ Auth, profiles, search
-- ✅ Playwright screenshots
-- ✅ Production build compiles
+- ✅ Auth, profiles, search, comments
+- ✅ Like/save/share with optimistic UI
+- ✅ PNG export with branded footer
+- ✅ Toast notification system
+- ✅ **Admin-configurable AI pipeline** (model, temperature, tools, chart types, themes, few-shot examples, KB toggle)
+- ✅ **Sticky generation engine** with engagement rules, hook field, and chart selection matrix
+- ✅ Production deployment on HestiaCP with PM2
+- ✅ Production build compiles (zero TypeScript errors)
 
-**Status**: Technically complete but NOT launchable. No real users have touched it. The AI prompts aren't tuned. The feed algorithm is chronological. There's no onboarding. No viral loop mechanics are active.
+**Status**: Feature-rich and technically complete. AI pipeline is production-ready with knowledge base for continuous learning. 11 chart types cover most data visualization needs. Ready for UX polish and growth mechanics.
 
 ---
 
@@ -70,11 +77,18 @@ The output of the 8 build iterations. Everything functions end-to-end:
 
 **Focus**: Tune the AI pipeline until it produces consistently beautiful, accurate infographics. This is the difference between a tech demo and a product.
 
-### Deliverables
+### Already Completed (Sprint 13-14)
+- ✅ **Smart chart type selection** — AI selects from 11 chart types based on data shape (selection matrix in system prompt)
+- ✅ **Knowledge base** — AI checks Qdrant for past research before web searching (faster, curated data)
+- ✅ **Admin-configurable pipeline** — model, temperature, tools, chart types, themes, few-shot examples all editable from admin panel
+- ✅ **Engagement rules** — title optimization, hook generation, chart selection matrix baked into system prompt
+- ✅ **Few-shot examples** — configurable via admin panel (array of `{ label, dnaJson }`)
+
+### Remaining Deliverables
 
 - **Prompt engineering refinement**
   - Test 50+ diverse prompts, categorize failure modes
-  - Add few-shot examples to the system prompt (3-5 ideal DNA outputs)
+  - Add 3-5 curated few-shot examples via the admin panel
   - Tune the web search query construction (the AI often writes bad search queries)
 
 - **Theme presets with visual identity**
@@ -85,14 +99,6 @@ The output of the 8 build iterations. Everything functions end-to-end:
   - `editorial`: newspaper-style layout, muted tones
   - `warm-earth`: organic colors, rounded shapes
   - `ocean-depth`: deep blues, wave-like gradients
-
-- **Smart chart type selection**
-  - If the user doesn't specify a chart type, the AI picks the best one based on data shape:
-    - 2-5 categories → pie/donut
-    - Time series → line/area
-    - Comparison → bar/grouped bar
-    - Single metric → stat card
-    - Sequential events → timeline
 
 - **Data formatting intelligence**
   - AI formats numbers with proper units (3.2M, not 3200000)
@@ -374,7 +380,7 @@ The output of the 8 build iterations. Everything functions end-to-end:
 
 | Version | Name | Focus | Key Outcome |
 |---|---|---|---|
-| v1.0 | It Works | Build iterations 1-8 | Functional app |
+| v1.0 | It Works | Build iterations 1-15 | 11 chart types, AI knowledge base, animated feed |
 | v1.1 | It Feels Right | UX polish, animations | Premium feel |
 | v1.2 | AI Gets Smarter | Generation quality | Reliable, beautiful output |
 | v1.3 | People Can Find It | SEO, discoverability | Organic traffic |

@@ -10,6 +10,9 @@ import { AnimatedAreaChart } from './compositions/animated-area-chart'
 import { AnimatedStatCard } from './compositions/animated-stat-card'
 import { AnimatedTimeline } from './compositions/animated-timeline'
 import { AnimatedGroupedBar } from './compositions/animated-grouped-bar'
+import { AnimatedPictogram } from './compositions/animated-pictogram'
+import { AnimatedVsSplit } from './compositions/animated-vs-split'
+import { AnimatedMapChart } from './compositions/animated-map-chart'
 
 /** Props shared by all animated chart components */
 export interface AnimatedChartProps {
@@ -36,4 +39,7 @@ export const ANIMATED_CHART_MAP: Record<string, ComponentType<AnimatedChartProps
   'stat-card': AnimatedStatCard,
   'timeline': AnimatedTimeline,
   'grouped-bar-chart': AnimatedGroupedBar,
+  'pictogram': AnimatedPictogram,
+  'vs-split': AnimatedVsSplit,
+  'map-chart': AnimatedMapChart,
 }

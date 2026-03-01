@@ -1,7 +1,7 @@
 import type { InfographicDNA } from './schema'
 
 /**
- * 8 sample DNA objects for seeding the database.
+ * 11 sample DNA objects for seeding the database.
  * Covers all chart types and multiple themes.
  * Each is a complete, valid InfographicDNA.
  */
@@ -389,6 +389,156 @@ export const SEED_DNA: Array<{
           { type: 'title' },
           { type: 'subtitle' },
           { type: 'grouped-bar-chart', dataKey: 'value', labelKey: 'label' },
+          { type: 'footnote' },
+          { type: 'source-badge' },
+        ],
+      },
+    },
+  },
+
+  // 9. Pictogram — Neon Cyberpunk
+  {
+    title: '7 Out of 10 Developers Use AI Daily',
+    description:
+      'A pictogram showing how AI tools have become embedded in the daily workflow of software developers worldwide. #AI #Developers #Tech',
+    tags: ['ai', 'developers', 'technology', 'productivity'],
+    dna: {
+      content: {
+        title: '7 Out of 10 Developers Use AI Daily',
+        subtitle: 'AI adoption in software development (2026)',
+        hook: 'AI is no longer optional — it is the default.',
+        data: [
+          { label: 'Use AI daily', value: 7, unit: 'out of 10', metadata: { icon: 'human' } },
+          { label: 'Use AI for code review', value: 5, unit: 'out of 10', metadata: { icon: 'education' } },
+          { label: 'Use AI for debugging', value: 4, unit: 'out of 10', metadata: { icon: 'shield' } },
+        ],
+        sources: [
+          {
+            name: 'Stack Overflow Developer Survey 2026',
+            url: 'https://survey.stackoverflow.co/2026/',
+            accessedAt: '2026-02-28',
+          },
+        ],
+        footnotes: 'Survey of 65,000 developers across 180 countries.',
+      },
+      presentation: {
+        theme: 'neon-cyberpunk',
+        chartType: 'pictogram',
+        layout: 'stacked',
+        colors: {
+          primary: '#00ff88',
+          secondary: '#ff00ff',
+          background: '#0a0014',
+          text: '#e0ffe0',
+          accent: '#00ffff',
+        },
+        components: [
+          { type: 'title' },
+          { type: 'subtitle' },
+          { type: 'hook' },
+          { type: 'pictogram', dataKey: 'value', labelKey: 'label' },
+          { type: 'footnote' },
+          { type: 'source-badge' },
+        ],
+      },
+    },
+  },
+
+  // 10. VS-Split — Glass Dark
+  {
+    title: 'Electric vs Gas: Cost Per Mile (2026)',
+    description:
+      'A head-to-head comparison of the cost to drive one mile in an electric vehicle versus a gas-powered car. #EV #Energy',
+    tags: ['electric-vehicles', 'energy', 'transportation', 'cost'],
+    dna: {
+      content: {
+        title: 'Electric vs Gas: Cost Per Mile',
+        subtitle: 'Average cost in the United States, 2026',
+        hook: 'EVs cost less than half per mile to operate.',
+        data: [
+          { label: 'Electric', value: 0.04, unit: '$/mile' },
+          { label: 'Gasoline', value: 0.12, unit: '$/mile' },
+        ],
+        sources: [
+          {
+            name: 'U.S. Department of Energy',
+            url: 'https://www.energy.gov/maps/egallon',
+            accessedAt: '2026-02-25',
+          },
+        ],
+        footnotes: 'Based on national average electricity rate of $0.16/kWh and gasoline at $3.45/gallon.',
+      },
+      presentation: {
+        theme: 'glass-dark',
+        chartType: 'vs-split',
+        layout: 'split',
+        colors: {
+          primary: '#22d3ee',
+          secondary: '#f97316',
+          background: '#0a0a0a',
+          text: '#ffffff',
+          accent: '#a855f7',
+        },
+        components: [
+          { type: 'title' },
+          { type: 'subtitle' },
+          { type: 'hook' },
+          { type: 'vs-split', dataKey: 'value', labelKey: 'label' },
+          { type: 'footnote' },
+          { type: 'source-badge' },
+        ],
+      },
+    },
+  },
+
+  // 11. Map Chart — Ocean Depth
+  {
+    title: 'Top 10 Countries by Renewable Energy Capacity (2025)',
+    description:
+      'A world map showing which countries lead in installed renewable energy capacity. #Renewables #Energy #Climate',
+    tags: ['renewables', 'energy', 'climate', 'global'],
+    dna: {
+      content: {
+        title: 'Top 10 Countries by Renewable Energy Capacity',
+        subtitle: 'Installed capacity in GW, 2025',
+        hook: 'China alone has more capacity than the next three combined.',
+        data: [
+          { label: 'CN', value: 1650, unit: 'GW', metadata: { country: 'China' } },
+          { label: 'US', value: 525, unit: 'GW', metadata: { country: 'United States' } },
+          { label: 'IN', value: 225, unit: 'GW', metadata: { country: 'India' } },
+          { label: 'BR', value: 195, unit: 'GW', metadata: { country: 'Brazil' } },
+          { label: 'DE', value: 170, unit: 'GW', metadata: { country: 'Germany' } },
+          { label: 'JP', value: 130, unit: 'GW', metadata: { country: 'Japan' } },
+          { label: 'GB', value: 95, unit: 'GW', metadata: { country: 'United Kingdom' } },
+          { label: 'AU', value: 85, unit: 'GW', metadata: { country: 'Australia' } },
+          { label: 'FR', value: 80, unit: 'GW', metadata: { country: 'France' } },
+          { label: 'ES', value: 78, unit: 'GW', metadata: { country: 'Spain' } },
+        ],
+        sources: [
+          {
+            name: 'IRENA Renewable Capacity Statistics 2025',
+            url: 'https://www.irena.org/publications/2025/Mar/Renewable-capacity-statistics-2025',
+            accessedAt: '2026-02-20',
+          },
+        ],
+        footnotes: 'Includes solar, wind, hydro, geothermal, and biomass.',
+      },
+      presentation: {
+        theme: 'ocean-depth',
+        chartType: 'map-chart',
+        layout: 'centered',
+        colors: {
+          primary: '#0ea5e9',
+          secondary: '#0369a1',
+          background: '#0c1929',
+          text: '#e0f2fe',
+          accent: '#38bdf8',
+        },
+        components: [
+          { type: 'title' },
+          { type: 'subtitle' },
+          { type: 'hook' },
+          { type: 'map-chart', dataKey: 'value', labelKey: 'label' },
           { type: 'footnote' },
           { type: 'source-badge' },
         ],

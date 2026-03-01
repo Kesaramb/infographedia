@@ -17,6 +17,9 @@ import { DonutChartBlock } from '@/components/charts/donut-chart'
 import { StatCardBlock } from '@/components/charts/stat-card'
 import { TimelineBlock } from '@/components/charts/timeline'
 import { GroupedBarChartBlock } from '@/components/charts/grouped-bar-chart'
+import { PictogramBlock } from '@/components/charts/pictogram'
+import { VsSplitBlock } from '@/components/charts/vs-split'
+import { MapChartBlock } from '@/components/charts/map-chart'
 
 /**
  * Maps DNA component type strings to React components.
@@ -40,4 +43,7 @@ export const COMPONENT_MAP: Record<string, ComponentType<DNAComponentProps>> = {
   'stat-card': StatCardBlock,
   'timeline': TimelineBlock,
   'grouped-bar-chart': GroupedBarChartBlock,
+  'pictogram': PictogramBlock,
+  'vs-split': VsSplitBlock,
+  'map-chart': MapChartBlock,
 }

@@ -26,6 +26,11 @@ RULES:
 6. Data array must have at least 1 item. Each item needs a "label" (string) and "value" (number).
 7. The "components" array defines the rendering order. Always include at minimum: title, the chart type, and source-badge.
 8. All hex colors must be exactly 6 digits with # prefix (e.g. #1a1a2e).
+9. You have TWO research tools: search_knowledge_base and web_search.
+   - ALWAYS try search_knowledge_base FIRST. It contains verified data from past infographic generations.
+   - If the knowledge base has relevant, recent data (< 7 days old), use it without web searching.
+   - If the knowledge base has no results or data is stale, fall back to web_search.
+   - You may use both tools if the knowledge base has partial data and you need to supplement it.
 
 DNA SCHEMA:
 {
@@ -52,7 +57,7 @@ DNA SCHEMA:
   },
   "presentation": {
     "theme": "glass-dark | glass-light | neon-cyberpunk | minimalist | editorial | warm-earth | ocean-depth",
-    "chartType": "bar-chart | pie-chart | line-chart | area-chart | timeline | stat-card | grouped-bar-chart | donut-chart",
+    "chartType": "bar-chart | pie-chart | line-chart | area-chart | timeline | stat-card | grouped-bar-chart | donut-chart | pictogram | vs-split | map-chart",
     "layout": "centered | left-aligned | split | stacked",
     "colors": {
       "primary": "#hex6 (main data color)",
@@ -96,6 +101,9 @@ ENGAGEMENT RULES:
    - Trends over time -> line-chart or area-chart
    - Single dramatic number -> stat-card
    - Chronological events -> timeline
+   - Icon-friendly counts ("7 out of 10", "3 in 5") -> pictogram
+   - Head-to-head comparison (exactly 2 items) -> vs-split
+   - Geographic/country distribution -> map-chart
    When in doubt, prefer bar-chart (highest engagement) or stat-card (most shareable).
 
 4. DATA PRESENTATION:
@@ -117,7 +125,25 @@ TIMELINE NOTES:
 GROUPED-BAR-CHART NOTES:
 - Each data point needs metadata.group to define the grouping
 - Labels should include the group (e.g., "India 2020", "India 2026")
-- Groups are extracted from metadata and shown as separate bar series`
+- Groups are extracted from metadata and shown as separate bar series
+
+PICTOGRAM NOTES:
+- Each data point's value represents the icon count (max 20 icons displayed)
+- Use metadata.icon to specify the icon name (e.g., "human", "dollar", "car", "tree", "heart", "energy", "water", "globe", "fire", "baby", "job", "education", "phone", "shield", "leaf", "star")
+- If no icon specified, a default circle icon is used
+- Best for: "X out of Y" statistics, population-style data, simple ratios
+
+VS-SPLIT NOTES:
+- Data array MUST have exactly 2 items (left vs right comparison)
+- data[0] = left side (primary color), data[1] = right side (secondary color)
+- Values are displayed as large numbers — best for dramatic comparisons
+- Best for: head-to-head matchups, before/after, country vs country
+
+MAP-CHART NOTES:
+- Each data point's label MUST be an ISO 3166-1 alpha-2 country code (e.g., "US", "CN", "IN", "BR", "DE")
+- The value is the metric for that country (colored by intensity)
+- Include 5-15 countries for best visual impact
+- Best for: country rankings, geographic distribution, global comparisons`
 
 /**
  * Assemble the final system prompt from admin config.
@@ -129,8 +155,8 @@ GROUPED-BAR-CHART NOTES:
 export function buildSystemPrompt(aiConfig: AIConfig): string {
   let prompt = aiConfig.systemPrompt || DEFAULT_SYSTEM_PROMPT
 
-  // Inject allowed chart types constraint
-  if (aiConfig.allowedChartTypes.length < 8) {
+  // Inject allowed chart types constraint (only if subset of all available types)
+  if (aiConfig.allowedChartTypes.length < 11) {
     prompt += `\n\nALLOWED CHART TYPES (only use these): ${aiConfig.allowedChartTypes.join(', ')}`
   }
 
@@ -157,7 +183,7 @@ export function buildNewPrompt(userPrompt: string): string {
   return `Create an infographic about: ${userPrompt}
 
 Instructions:
-1. Search for real, current data first using the web_search tool
+1. Search for data using search_knowledge_base first, then web_search if needed
 2. Choose the chart type that best fits the data (see CHART TYPE SELECTION rules)
 3. Write a scroll-stopping title with a specific number or power word
 4. If the data contains a surprising finding, add a "hook" field

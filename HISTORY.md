@@ -696,13 +696,129 @@ This iteration had three phases: Admin AI Configuration, Sticky Prompt Engineeri
 
 ---
 
-## Current State (Post-Iteration 14)
+## Iteration 15: Visual Toolkit Expansion + Knowledge Base (Sprint 14)
+
+**Date**: March 2026
+**Status**: Complete
+
+### Overview
+
+Two parallel tracks delivered simultaneously:
+- **Track A**: 3 new chart types (pictogram, vs-split, map-chart) — expands the visual toolkit from 8 to 11 types
+- **Track B**: Qdrant vector knowledge base — gives the AI persistent memory of past generations via Voyage AI embeddings
+
+### Track A: Visual Toolkit Expansion
+
+#### Pictogram (`pictogram`)
+- **Icon registry** (`src/components/charts/pictogram/icon-registry.ts`) — 18 Lucide icon mappings with dual export: `getIconComponent()` for static rendering, `getIconSVGPaths()` for raw SVG in Remotion
+- **Static component** (`src/components/charts/pictogram/index.tsx`) — Icon grids per data point, count clamped 1-20, alternating primary/secondary colors
+- **Animated component** (`src/components/remotion/compositions/animated-pictogram.tsx`) — Spring-staggered icons (+6 frames per icon), raw SVG rendering
+
+#### VS-Split (`vs-split`)
+- **Static component** (`src/components/charts/vs-split.tsx`) — 50/50 vertical split: data[0]=left (primary), data[1]=right (secondary), "VS" divider in accent color, big numbers (text-5xl/6xl)
+- **Animated component** (`src/components/remotion/compositions/animated-vs-split.tsx`) — Left slides from left (frame 60-90), right slides from right (frame 70-100), "VS" scales up (100-120), numbers count up via interpolate (70-140)
+
+#### Map Chart (`map-chart`)
+- **Country utils** (`src/components/charts/map-chart/country-utils.ts`) — ISO alpha-2 to numeric code mapping (~195 countries)
+- **Static component** (`src/components/charts/map-chart/index.tsx`) — Choropleth using `react-simple-maps` with CDN TopoJSON (`world-atlas@2/countries-110m.json`), color intensity by value/maxValue, gradient legend bar
+- **Animated component** (`src/components/remotion/compositions/animated-map-chart.tsx`) — Countries highlight with +10 frame stagger, overall map fade-in at frame 50, legend at frame 120
+- **Type declarations** (`src/types/react-simple-maps.d.ts`) — TypeScript declarations for react-simple-maps (no `@types` package available)
+
+#### Cross-Cutting Changes
+- `src/lib/dna/schema.ts` — Added `pictogram`, `vs-split`, `map-chart` to ChartType enum (8 → 11 types)
+- `src/components/dna-renderer/component-map.ts` — 3 new COMPONENT_MAP entries
+- `src/components/remotion/component-map.ts` — 3 new ANIMATED_CHART_MAP entries
+- `src/lib/dna/seed-data.ts` — 3 new seed DNA entries (9: pictogram, 10: vs-split, 11: map-chart)
+- `src/lib/ai/prompts.ts` — New chart type notes (PICTOGRAM NOTES, VS-SPLIT NOTES, MAP-CHART NOTES), updated selection matrix, hardcoded type count fix (8 → 11)
+- `src/globals/AIAgentConfig.ts` — 3 new chart type options in allowedChartTypes
+- `src/lib/ai/config.ts` — 3 new defaults in allowedChartTypes array
+
+### Track B: Knowledge Base Integration (Qdrant + Voyage AI)
+
+#### Architecture
+```
+AI receives prompt
+  → Calls search_knowledge_base tool FIRST (Voyage AI → Qdrant similarity search)
+  → If KB has relevant, recent data → uses it directly
+  → If KB empty/stale → falls back to web_search tool
+  → Generates DNA
+  → On success: background task stores knowledge (embed + upsert to Qdrant)
+```
+
+#### Knowledge Library (`src/lib/knowledge/`)
+
+| File | Purpose |
+|------|---------|
+| `types.ts` | `KnowledgePoint`, `KnowledgeSearchResult`, `KnowledgeResult` interfaces |
+| `client.ts` | Singleton Qdrant client, auto-creates collection on first use (1024-dim Cosine vectors, payload indexes for `createdAt` and `qualityScore`) |
+| `embeddings.ts` | Voyage AI HTTP client (model `voyage-3.5`, 1024 dimensions). `embedText()` and `embedBatch()` functions |
+| `store.ts` | Write path: `storeKnowledge()` embeds + upserts, `scoreUsefulness()` compares DNA sources against search results, `storeGenerationKnowledge()` is the background post-generation handler |
+| `search.ts` | Read path: `searchKnowledge()` embeds query → Qdrant similarity search (top 5, score > 0.75) → filters out results > 30 days old → adds stale warnings for results > 7 days → returns formatted text for Claude tool_result |
+
+#### Graceful Degradation
+- All KB functions bail early with helpful messages if `QDRANT_URL` or `VOYAGE_API_KEY` not configured
+- App works 100% without Qdrant — the AI simply won't have the KB tool available
+
+#### Pipeline Changes
+
+| File | Change |
+|------|--------|
+| `src/lib/ai/tools.ts` | Added `KNOWLEDGE_BASE_TOOL` definition alongside existing `WEB_SEARCH_TOOL` |
+| `src/lib/ai/generate.ts` | Dynamic tool assembly based on config (`enableKnowledgeBase` + `enableWebSearch`), KB tool handler in loop, post-generation `storeGenerationKnowledge()` call (non-blocking with `.catch()`) |
+| `src/lib/ai/prompts.ts` | Rule 9: KB-first research strategy. Updated `buildNewPrompt()` to reference both tools |
+| `src/lib/ai/config.ts` | Added `enableKnowledgeBase: boolean` to `AIConfig` interface + DEFAULTS |
+| `src/globals/AIAgentConfig.ts` | Added `enableKnowledgeBase` checkbox (default: true) |
+
+### New Environment Variables (for Track B)
+```
+QDRANT_URL=http://localhost:6333        # Qdrant vector store URL
+QDRANT_API_KEY=<key>                    # Optional API key for Qdrant
+VOYAGE_API_KEY=<key>                    # Voyage AI API key for embeddings
+```
+
+### All Files Created
+| File | Purpose |
+|------|---------|
+| `src/components/charts/pictogram/icon-registry.ts` | Icon name → Lucide component + SVG path mapping |
+| `src/components/charts/pictogram/index.tsx` | Static pictogram renderer |
+| `src/components/charts/vs-split.tsx` | Static vs-split renderer |
+| `src/components/charts/map-chart/country-utils.ts` | ISO alpha-2 → numeric code mapping |
+| `src/components/charts/map-chart/index.tsx` | Static choropleth map |
+| `src/components/remotion/compositions/animated-pictogram.tsx` | Animated pictogram |
+| `src/components/remotion/compositions/animated-vs-split.tsx` | Animated vs-split |
+| `src/components/remotion/compositions/animated-map-chart.tsx` | Animated map chart |
+| `src/types/react-simple-maps.d.ts` | Type declarations for react-simple-maps |
+| `src/lib/knowledge/types.ts` | Knowledge base interfaces |
+| `src/lib/knowledge/client.ts` | Qdrant client singleton |
+| `src/lib/knowledge/embeddings.ts` | Voyage AI embedding functions |
+| `src/lib/knowledge/store.ts` | Knowledge write path |
+| `src/lib/knowledge/search.ts` | Knowledge read path |
+
+### Dependencies Added
+- `react-simple-maps` — Choropleth map rendering
+- `@qdrant/js-client-rest` — Qdrant vector store client
+
+### Key Decisions
+- **Pictogram clamped at 20 icons** — prevents layout overflow for large values
+- **Map chart uses CDN TopoJSON** (`cdn.jsdelivr.net/npm/world-atlas@2`) instead of bundled file — lazy-loaded only for map-chart posts
+- **react-simple-maps works in both static and Remotion** — both run in browser context
+- **Country codes as labels** — AI uses ISO alpha-2 codes (e.g., "US", "CN") as data labels, with human-readable names in `metadata.country`
+- **KB tool is first in tools array** — Claude's tool ordering preference means it naturally tries KB before web search
+- **Knowledge scoring** — `scoreUsefulness()` measures what % of search result URLs actually ended up in the final DNA's `content.sources[]`
+- **No SQL migration needed** — New chart type options and `enableKnowledgeBase` are stored as JSON in Payload's global tables, not as PostgreSQL enum columns
+
+---
+
+## Current State (Post-Iteration 15)
 
 ### What's Working
-- Full feed with infinite scroll and 9 seed infographics
+- Full feed with infinite scroll and 11 seed infographics
 - **Animated infographics** in feed and detail view (Remotion Player, 30fps, 8s play-once with static swap)
-- All 8 chart types rendering as both static (Recharts) and animated (raw SVG + Remotion)
-- AI generation pipeline (Claude + web search grounding) with **admin-configurable settings**
+- All **11 chart types** rendering as both static and animated:
+  - Recharts: bar, pie, line, area, donut, grouped-bar
+  - Custom: stat-card, timeline, pictogram, vs-split, map-chart
+- AI generation pipeline (Claude + web search + **Qdrant knowledge base** grounding) with admin-configurable settings
+- **Knowledge base** — AI learns from every generation, searches past data before web search
 - **Sticky generation engine** with engagement rules, hook field, and optimized prompts
 - Create and iterate modal flows
 - Like, save, share with optimistic UI
@@ -711,13 +827,12 @@ This iteration had three phases: Admin AI Configuration, Sticky Prompt Engineeri
 - Toast notifications with Framer Motion animations
 - Session-based authentication (login, register, logout)
 - All navigation routes (Home, Search, Activity, Profile, Edit Profile)
-- Payload CMS admin panel at `/admin` with AI Agent Config global
+- Payload CMS admin panel at `/admin` with AI Agent Config global (including KB toggle)
 - **Admin-only guide page** at `/guide` with role-based access control
-- **AdminGuard** component for protecting admin routes
 - Production deployment on HestiaCP with PM2
 - GitHub repository at https://github.com/Kesaramb/infographedia
 
-### Tech Versions (as of Iteration 13)
+### Tech Versions (as of Iteration 15)
 | Package | Version |
 |---------|---------|
 | Next.js | 15.4.11 |
@@ -729,6 +844,8 @@ This iteration had three phases: Admin AI Configuration, Sticky Prompt Engineeri
 | @remotion/player | 4.0.429 |
 | Framer Motion | 12.34.3 |
 | html-to-image | 1.11.13 |
+| react-simple-maps | 3.x |
+| @qdrant/js-client-rest | latest |
 | Zod | 4.x (`import { z } from 'zod/v4'`) |
 | Anthropic SDK | 0.78.0 |
 | TypeScript | 5.9.3 |

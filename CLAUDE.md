@@ -20,8 +20,10 @@ Infographedia is an Instagram-style infinite-scroll platform where every post is
 - **Backend/CMS**: Payload CMS v3 (runs inside Next.js as a monolith)
 - **Database**: PostgreSQL (via Supabase or self-hosted)
 - **Styling**: Tailwind CSS (app shell) + CSS custom properties (dynamic DNA theming)
-- **Charts**: Recharts for declarative charts, D3.js for advanced visualizations
-- **AI**: Claude API (Anthropic) with tool calling (web search for grounding)
+- **Charts**: Recharts for declarative charts, react-simple-maps for choropleth maps, raw SVG for Remotion animations
+- **AI**: Claude API (Anthropic) with tool calling (knowledge base + web search for grounding)
+- **Knowledge Base**: Qdrant vector store + Voyage AI embeddings (voyage-3.5, 1024-dim)
+- **Animation**: Remotion Player (30fps, play-once animated infographics)
 - **Snapshot**: Playwright for headless screenshots of rendered DNA
 - **Auth**: Payload built-in (JWT/session)
 - **Icons**: Lucide React
@@ -61,12 +63,13 @@ DNA = {
     /ui                   # Reusable glass UI primitives
     /feed                 # Feed, post cards, infinite scroll
     /dna-renderer         # DNA → React component mapping engine
-    /charts               # Chart components (bar, pie, line, timeline)
+    /charts               # Chart components (bar, pie, line, timeline, pictogram, vs-split, map-chart)
     /modals               # Iterate modal, create modal
   /collections            # Payload CMS collection schemas
   /lib
     /ai                   # AI pipeline (prompt builder, tool calling, DNA generation)
     /dna                  # DNA validation (Zod schemas), mutation helpers
+    /knowledge            # Qdrant vector store + Voyage AI embeddings (knowledge base)
     /snapshot             # Playwright screenshot service
   /styles                 # Global styles, Tailwind config, CSS variables
   /hooks                  # React hooks (useInfiniteScroll, useDNA, etc.)
@@ -146,11 +149,12 @@ Border:         border-white/5 or border-white/10
 
 ## AI Pipeline Rules
 
-1. **Always ground with web search**: When the user prompt involves data (numbers, statistics, facts), the AI MUST call its web search tool BEFORE generating DNA. No hallucinated data.
+1. **Knowledge base first, then web search**: The AI has two research tools: `search_knowledge_base` (Qdrant) and `web_search`. It checks the knowledge base FIRST for verified past data, falling back to web search only if needed. No hallucinated data.
 2. **Style-only changes skip search**: If the prompt only changes presentation (colors, theme, chart type), the AI reuses the parent's `content` and only mutates `presentation`.
 3. **Sources are mandatory**: Every generated DNA must have at least one entry in `content.sources[]` with `name`, `url`, and `accessedAt`.
 4. **Schema validation**: All AI output passes through Zod validation before reaching the database. Invalid DNA is rejected with a user-friendly error.
 5. **Iteration = mutation, not recreation**: When iterating, the AI receives the full parent DNA as context. It mutates fields, not rebuilds from scratch.
+6. **Knowledge base learning**: After every successful generation, the AI's findings are automatically stored in Qdrant (query, data summary, sources, quality score) for future generations to leverage.
 
 ## Critical Constraints
 

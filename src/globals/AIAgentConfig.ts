@@ -81,6 +81,17 @@ export const AIAgentConfig: GlobalConfig = {
       },
     },
 
+    // ── Knowledge Base ─────────────────────────────────────────────
+    {
+      name: 'enableKnowledgeBase',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'Enable Knowledge Base',
+      admin: {
+        description: 'Allow the AI to search past generation data via Qdrant vector store. Requires QDRANT_URL and VOYAGE_API_KEY.',
+      },
+    },
+
     // ── System Prompt ────────────────────────────────────────────────
     {
       name: 'systemPrompt',
@@ -107,6 +118,9 @@ export const AIAgentConfig: GlobalConfig = {
         'stat-card',
         'grouped-bar-chart',
         'donut-chart',
+        'pictogram',
+        'vs-split',
+        'map-chart',
       ],
       admin: {
         description: 'Which chart types the AI is allowed to generate.',
@@ -120,6 +134,9 @@ export const AIAgentConfig: GlobalConfig = {
         { label: 'Stat Card', value: 'stat-card' },
         { label: 'Grouped Bar Chart', value: 'grouped-bar-chart' },
         { label: 'Donut Chart', value: 'donut-chart' },
+        { label: 'Pictogram', value: 'pictogram' },
+        { label: 'VS Split', value: 'vs-split' },
+        { label: 'Map Chart', value: 'map-chart' },
       ],
     },
     {

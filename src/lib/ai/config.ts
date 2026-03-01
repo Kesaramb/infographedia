@@ -17,6 +17,7 @@ export interface AIConfig {
   maxTokens: number
   maxToolRounds: number
   enableWebSearch: boolean
+  enableKnowledgeBase: boolean
   systemPrompt: string
   allowedChartTypes: string[]
   allowedThemes: string[]
@@ -29,6 +30,7 @@ const DEFAULTS: AIConfig = {
   maxTokens: 4096,
   maxToolRounds: 5,
   enableWebSearch: true,
+  enableKnowledgeBase: true,
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   allowedChartTypes: [
     'bar-chart',
@@ -39,6 +41,9 @@ const DEFAULTS: AIConfig = {
     'stat-card',
     'grouped-bar-chart',
     'donut-chart',
+    'pictogram',
+    'vs-split',
+    'map-chart',
   ],
   allowedThemes: [
     'glass-dark',
@@ -78,6 +83,7 @@ export async function getAIConfig(): Promise<AIConfig> {
       maxTokens: typeof global.maxTokens === 'number' ? global.maxTokens : DEFAULTS.maxTokens,
       maxToolRounds: typeof global.maxToolRounds === 'number' ? global.maxToolRounds : DEFAULTS.maxToolRounds,
       enableWebSearch: typeof global.enableWebSearch === 'boolean' ? global.enableWebSearch : DEFAULTS.enableWebSearch,
+      enableKnowledgeBase: typeof global.enableKnowledgeBase === 'boolean' ? global.enableKnowledgeBase : DEFAULTS.enableKnowledgeBase,
       systemPrompt: (typeof global.systemPrompt === 'string' && global.systemPrompt) || DEFAULTS.systemPrompt,
       allowedChartTypes: Array.isArray(global.allowedChartTypes) && global.allowedChartTypes.length > 0
         ? (global.allowedChartTypes as string[])

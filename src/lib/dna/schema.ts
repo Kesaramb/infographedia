@@ -19,6 +19,9 @@ export const ChartType = z.enum([
   'stat-card',
   'grouped-bar-chart',
   'donut-chart',
+  'pictogram',
+  'vs-split',
+  'map-chart',
 ])
 
 export const ThemeName = z.enum([
