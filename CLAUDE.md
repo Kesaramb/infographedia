@@ -10,6 +10,7 @@ Infographedia is an Instagram-style infinite-scroll platform where every post is
 
 **Key documentation**:
 - [CONCEPTS.md](./CONCEPTS.md) - First principles, system architecture, and design tradeoffs. Read this first.
+- [INFOGRAPHIC_ENGINE.md](./INFOGRAPHIC_ENGINE.md) - Complete creation pipeline: DNA schema, AI generation, rendering, animation, export.
 - [HISTORY.md](./HISTORY.md) - Full development log of every iteration, key decisions, and bugs fixed.
 - [ROADMAP.md](./ROADMAP.md) - Product roadmap from v1.1 to v2.0 launch.
 
@@ -199,5 +200,6 @@ pm2 restart infographedia
 | File | Purpose | When to Read |
 |------|---------|--------------|
 | **[CONCEPTS.md](./CONCEPTS.md)** | First principles, system architecture, design tradeoffs | Before making architectural decisions or adding new patterns |
+| **[INFOGRAPHIC_ENGINE.md](./INFOGRAPHIC_ENGINE.md)** | Complete creation pipeline: DNA, AI, rendering, animation, export | Before modifying any part of the infographic creation engine |
 | **[HISTORY.md](./HISTORY.md)** | Build iteration log, bugs fixed, deployment details | Before starting new work or debugging existing issues |
 | **[ROADMAP.md](./ROADMAP.md)** | Product roadmap v1.1 to v2.0 | When planning what to build next |

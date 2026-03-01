@@ -11,6 +11,13 @@ const FOOTER_FONT = '600 11px system-ui, -apple-system, sans-serif'
 const BRAND_DOT_RADIUS = 4
 const BRAND_DOT_COLOR = 'rgba(255, 255, 255, 0.6)'
 
+/** Shared toPng options */
+const CAPTURE_OPTIONS = {
+  pixelRatio: 2,
+  cacheBust: true,
+  skipFonts: false,
+}
+
 export function useDownloadInfographic(
   ref: React.RefObject<HTMLDivElement | null>,
   postId: number | string,
@@ -26,11 +33,28 @@ export function useDownloadInfographic(
     setIsDownloading(true)
 
     try {
-      // Capture DOM node as PNG at 2x for retina quality
-      const dataUrl = await toPng(node, {
-        pixelRatio: 2,
-        cacheBust: true,
-      })
+      // Move the offscreen renderer into the viewport so Recharts
+      // ResponsiveContainer can measure dimensions properly.
+      const savedCss = node.style.cssText
+      const savedClass = node.className
+      node.className = ''
+      node.style.cssText =
+        'position:fixed;left:0;top:0;width:600px;z-index:-9999;pointer-events:none;'
+
+      // Wait for ResizeObserver + Recharts re-render
+      await new Promise<void>((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 200))),
+      )
+
+      // html-to-image known issue: first call may produce a blank image
+      // because external resources (fonts, images) haven't been cached yet.
+      // Calling twice ensures all resources are resolved.
+      await toPng(node, CAPTURE_OPTIONS)
+      const dataUrl = await toPng(node, CAPTURE_OPTIONS)
+
+      // Restore original offscreen positioning
+      node.className = savedClass
+      node.style.cssText = savedCss
 
       // Load captured image onto a canvas to add branded footer
       const img = new Image()
@@ -91,6 +115,12 @@ export function useDownloadInfographic(
     } catch (err) {
       console.error('[download-infographic]', err)
       toast('Download failed. Try again.', 'error')
+      // Restore offscreen positioning on error
+      const n = ref.current
+      if (n) {
+        n.className = 'absolute -left-[9999px] top-0'
+        n.style.cssText = 'width: 600px;'
+      }
     } finally {
       setIsDownloading(false)
     }

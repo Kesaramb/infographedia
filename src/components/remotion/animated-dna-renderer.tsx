@@ -17,18 +17,42 @@ interface AnimatedDNARendererProps {
 /**
  * Renders an animated infographic using Remotion Player.
  *
- * - Plays once on mount for ~8 seconds
+ * - Waits until the card scrolls into the viewport before playing
+ * - Plays once for ~8 seconds
  * - When done, swaps to the static DNARenderer so the fully populated
  *   infographic stays visible
  * - Shows a subtle replay button after playback ends
  */
 export function AnimatedDNARenderer({ dna }: AnimatedDNARendererProps) {
   const playerRef = useRef<PlayerRef>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [hasEnteredView, setHasEnteredView] = useState(false)
   const [animationDone, setAnimationDone] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // After the animation duration elapses, swap to static renderer
+  // Observe when the card enters the viewport, then trigger playback once
   useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setHasEnteredView(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.3 },
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  // Start the swap timer once the player becomes visible and begins playing
+  useEffect(() => {
+    if (!hasEnteredView) return
+
     timerRef.current = setTimeout(() => {
       setAnimationDone(true)
     }, ANIMATION_DURATION_MS + 500) // small buffer for load delay
@@ -36,7 +60,7 @@ export function AnimatedDNARenderer({ dna }: AnimatedDNARendererProps) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [])
+  }, [hasEnteredView])
 
   const handleReplay = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -45,7 +69,6 @@ export function AnimatedDNARenderer({ dna }: AnimatedDNARendererProps) {
       setAnimationDone(false)
       player.seekTo(0)
       player.play()
-      // Set up timer for this replay
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => {
         setAnimationDone(true)
@@ -54,9 +77,16 @@ export function AnimatedDNARenderer({ dna }: AnimatedDNARendererProps) {
   }, [])
 
   return (
-    <div className="relative">
-      {/* Animated player — visible during playback */}
-      {!animationDone && (
+    <div ref={containerRef} className="relative">
+      {/* Static infographic shown before viewport entry and after animation ends */}
+      {(!hasEnteredView || animationDone) && (
+        <div style={{ borderRadius: 12, overflow: 'hidden' }}>
+          <DNARenderer dna={dna} />
+        </div>
+      )}
+
+      {/* Animated player — mounted and auto-plays only after entering viewport */}
+      {hasEnteredView && !animationDone && (
         <Player
           ref={playerRef}
           component={InfographicComposition}
@@ -76,13 +106,6 @@ export function AnimatedDNARenderer({ dna }: AnimatedDNARendererProps) {
             overflow: 'hidden',
           }}
         />
-      )}
-
-      {/* Static infographic — shown after animation ends */}
-      {animationDone && (
-        <div style={{ borderRadius: 12, overflow: 'hidden' }}>
-          <DNARenderer dna={dna} />
-        </div>
       )}
 
       {/* Subtle replay button */}
