@@ -44,3 +44,22 @@ export const WEB_SEARCH_TOOL: Anthropic.Tool = {
     required: ['query'],
   },
 }
+
+export const IMAGE_SEARCH_TOOL: Anthropic.Tool = {
+  name: 'image_search',
+  description:
+    'Search for grounded supporting images tied to a real source page. ' +
+    'Use this only when a sourced image would materially improve the infographic. ' +
+    'Return evidence images, document scans, portraits, or contextual visuals with a real source URL. ' +
+    'Never use it to find decorative stock or AI-generated art.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      query: {
+        type: 'string',
+        description: 'The image search query. Include the entity, artifact, place, report, or document you need visual evidence for.',
+      },
+    },
+    required: ['query'],
+  },
+}

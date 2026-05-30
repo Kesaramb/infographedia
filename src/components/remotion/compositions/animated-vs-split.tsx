@@ -1,20 +1,10 @@
 import { useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion'
-import type { InfographicDNA } from '@/lib/dna/schema'
+import type { AnimatedRenderableProps } from '@/components/remotion/types'
 
-interface AnimatedChartProps {
-  dna: InfographicDNA
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-    accent: string
-  }
-}
-
-export function AnimatedVsSplit({ dna, colors }: AnimatedChartProps) {
+export function AnimatedVsSplit({ dna, colors, block }: AnimatedRenderableProps) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
+  const localFrame = Math.max(0, frame - block.animation.startFrame)
   const data = dna.content.data
   const left = data[0]
   const right = data[1]
@@ -23,35 +13,35 @@ export function AnimatedVsSplit({ dna, colors }: AnimatedChartProps) {
 
   // Left side slides in from left
   const leftProgress = spring({
-    frame: frame - 60,
+    frame: localFrame,
     fps,
     config: { damping: 14, stiffness: 60 },
   })
 
   // Right side slides in from right
   const rightProgress = spring({
-    frame: frame - 70,
+    frame: localFrame - 10,
     fps,
     config: { damping: 14, stiffness: 60 },
   })
 
   // VS divider scales up
   const vsProgress = spring({
-    frame: frame - 100,
+    frame: localFrame - 24,
     fps,
     config: { damping: 12, stiffness: 80 },
   })
 
   // Count-up for numbers
   const leftValue = interpolate(
-    frame,
-    [70, 140],
+    localFrame,
+    [12, 80],
     [0, left.value],
     { extrapolateRight: 'clamp', extrapolateLeft: 'clamp' },
   )
   const rightValue = interpolate(
-    frame,
-    [80, 140],
+    localFrame,
+    [18, 86],
     [0, right.value],
     { extrapolateRight: 'clamp', extrapolateLeft: 'clamp' },
   )

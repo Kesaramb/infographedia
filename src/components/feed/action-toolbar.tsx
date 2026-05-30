@@ -9,6 +9,7 @@ import { useCallback, useRef, useEffect } from 'react'
 
 interface ActionToolbarProps {
   postId: number | string
+  postPath: string
   likes: number
   saves: number
   shares: number
@@ -28,6 +29,7 @@ interface ActionToolbarProps {
  */
 export function ActionToolbar({
   postId,
+  postPath,
   likes,
   saves,
   shares,
@@ -92,7 +94,7 @@ export function ActionToolbar({
   }, [user, save, postId, toast])
 
   const handleShare = useCallback(async () => {
-    const url = `${window.location.origin}/post/${postId}`
+    const url = new URL(postPath, window.location.origin).toString()
 
     // Try native share first, then clipboard
     if (navigator.share) {
@@ -109,7 +111,7 @@ export function ActionToolbar({
 
     // Fire-and-forget share counter increment
     fetch(`/api/posts/${postId}/share`, { method: 'POST' }).catch(() => {})
-  }, [postId, toast])
+  }, [postId, postPath, toast])
 
   return (
     <div className="px-4 py-2">

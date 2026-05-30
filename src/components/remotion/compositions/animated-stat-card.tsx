@@ -1,23 +1,13 @@
 import { useCurrentFrame, interpolate } from 'remotion'
-import type { InfographicDNA } from '@/lib/dna/schema'
+import type { AnimatedRenderableProps } from '@/components/remotion/types'
 
-interface AnimatedChartProps {
-  dna: InfographicDNA
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-    accent: string
-  }
-}
-
-export function AnimatedStatCard({ dna, colors }: AnimatedChartProps) {
+export function AnimatedStatCard({ dna, colors, block }: AnimatedRenderableProps) {
   const frame = useCurrentFrame()
+  const localFrame = Math.max(0, frame - block.animation.startFrame)
   const data = dna.content.data[0]
   if (!data) return null
 
-  const countProgress = interpolate(frame, [60, 140], [0, 1], {
+  const countProgress = interpolate(localFrame, [0, 80], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   })
@@ -27,12 +17,12 @@ export function AnimatedStatCard({ dna, colors }: AnimatedChartProps) {
     ? Math.round(currentValue).toLocaleString()
     : currentValue.toFixed(2)
 
-  const opacity = interpolate(frame, [50, 70], [0, 1], {
+  const opacity = interpolate(localFrame, [0, 20], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   })
 
-  const scale = interpolate(frame, [50, 80], [0.8, 1], {
+  const scale = interpolate(localFrame, [0, 30], [0.8, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   })

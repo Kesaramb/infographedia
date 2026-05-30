@@ -2,6 +2,7 @@ import { getPayload } from 'payload'
 import config from '../payload.config'
 import { SEED_DNA } from '../src/lib/dna/seed-data'
 import { DNASchema } from '../src/lib/dna/schema'
+import { normalizePostSlug } from '../src/lib/posts'
 
 async function seed() {
   console.log('🌱 Starting seed...')
@@ -75,10 +76,14 @@ async function seed() {
 
     const post = await payload.create({
       collection: 'posts',
+      draft: false,
       data: {
         author: author.id as number,
         title: seedItem.title,
+        slug: normalizePostSlug(seedItem.title),
         description: seedItem.description,
+        renderEngine: 'dna-legacy',
+        formatVersion: 1,
         dna: validation.data,
         tags: seedItem.tags.map((tag) => ({ tag })),
         parentPost: parentPost as number | undefined,

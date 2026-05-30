@@ -1,6 +1,6 @@
 import { getClient, ensureCollection, COLLECTION_NAME } from './client'
 import { embedText } from './embeddings'
-import type { KnowledgeResult } from './types'
+import type { KnowledgeResult, KnowledgeSearchResult } from './types'
 
 const MIN_SCORE = 0.75
 const MAX_AGE_DAYS = 30
@@ -14,9 +14,27 @@ export async function searchKnowledge(
   query: string,
   limit = 5,
 ): Promise<string> {
+  const result = await searchKnowledgeDetailed(query, limit)
+  return result.content
+}
+
+export interface KnowledgeSearchExecution {
+  content: string
+  results: KnowledgeSearchResult[]
+  hasFreshResults: boolean
+}
+
+export async function searchKnowledgeDetailed(
+  query: string,
+  limit = 5,
+): Promise<KnowledgeSearchExecution> {
   // Bail early if Qdrant/Voyage aren't configured
   if (!process.env.QDRANT_URL || !process.env.VOYAGE_API_KEY) {
-    return '[Knowledge base unavailable — QDRANT_URL or VOYAGE_API_KEY not configured]'
+    return {
+      content: '[Knowledge base unavailable — QDRANT_URL or VOYAGE_API_KEY not configured]',
+      results: [],
+      hasFreshResults: false,
+    }
   }
 
   try {
@@ -33,12 +51,17 @@ export async function searchKnowledge(
     })
 
     if (results.length === 0) {
-      return `[No relevant results in knowledge base for: "${query}"]`
+      return {
+        content: `[No relevant results in knowledge base for: "${query}"]`,
+        results: [],
+        hasFreshResults: false,
+      }
     }
 
     // Filter out results older than MAX_AGE_DAYS
     const now = new Date()
     const filtered: KnowledgeResult[] = []
+    let hasFreshResults = false
 
     for (const result of results) {
       const payload = result.payload as Record<string, unknown>
@@ -65,19 +88,38 @@ export async function searchKnowledge(
 
       if (ageDays > STALE_THRESHOLD_DAYS) {
         kr.staleWarning = `Data is ${Math.round(ageDays)} days old — consider verifying with web search`
+      } else {
+        hasFreshResults = true
       }
 
       filtered.push(kr)
     }
 
     if (filtered.length === 0) {
-      return `[Knowledge base results for "${query}" are all older than ${MAX_AGE_DAYS} days. Use web_search for fresh data.]`
+      return {
+        content: `[Knowledge base results for "${query}" are all older than ${MAX_AGE_DAYS} days. Use web_search for fresh data.]`,
+        results: [],
+        hasFreshResults: false,
+      }
     }
 
-    return formatKnowledgeResults(query, filtered)
+    return {
+      content: formatKnowledgeResults(query, filtered),
+      results: filtered.flatMap((entry) =>
+        entry.searchResults.map((result) => ({
+          ...result,
+          usedInDNA: false,
+        })),
+      ),
+      hasFreshResults,
+    }
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error'
-    return `[Knowledge base search failed: ${msg}. Fall back to web_search.]`
+    return {
+      content: `[Knowledge base search failed: ${msg}. Fall back to web_search.]`,
+      results: [],
+      hasFreshResults: false,
+    }
   }
 }
 

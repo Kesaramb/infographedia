@@ -1,20 +1,10 @@
 import { useCurrentFrame, interpolate } from 'remotion'
-import type { InfographicDNA } from '@/lib/dna/schema'
+import type { AnimatedRenderableProps } from '@/components/remotion/types'
 
-interface AnimatedTextProps {
-  dna: InfographicDNA
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-    accent: string
-  }
-}
-
-export function AnimatedSourceBadge({ dna, colors }: AnimatedTextProps) {
+export function AnimatedSourceBadge({ dna, colors, block }: AnimatedRenderableProps) {
   const frame = useCurrentFrame()
-  const opacity = interpolate(frame, [180, 210], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  const localFrame = Math.max(0, frame - block.animation.startFrame)
+  const opacity = interpolate(localFrame, [0, 20], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
 
   return (
     <div
@@ -26,6 +16,7 @@ export function AnimatedSourceBadge({ dna, colors }: AnimatedTextProps) {
         display: 'flex',
         gap: 8,
         flexWrap: 'wrap' as const,
+        justifyContent: block.align === 'center' ? 'center' : 'flex-start',
       }}
     >
       {dna.content.sources.map((source, i) => (

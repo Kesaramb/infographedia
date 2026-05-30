@@ -60,7 +60,14 @@ export async function POST(
   try {
     const payload = await getPayload({ config })
     const headersList = await getHeaders()
+
+    // Debug: log auth state to diagnose 401 issues
+    const cookieHeader = headersList.get('cookie') ?? ''
+    const hasPayloadToken = cookieHeader.includes('payload-token')
+    console.log(`[comments/POST] Auth debug: cookie present=${!!cookieHeader}, payload-token=${hasPayloadToken}, cookie length=${cookieHeader.length}`)
+
     const { user } = await payload.auth({ headers: headersList })
+    console.log(`[comments/POST] Auth result: user=${user ? `${user.id} (${(user as unknown as Record<string, unknown>).username})` : 'null'}`)
 
     if (!user) {
       return NextResponse.json(
@@ -113,6 +120,7 @@ export async function POST(
       await payload.update({
         collection: 'posts',
         id: postId,
+        draft: false,
         data: {
           metrics: {
             ...(post.metrics as object),
@@ -195,6 +203,7 @@ export async function DELETE(
       await payload.update({
         collection: 'posts',
         id: postId,
+        draft: false,
         data: {
           metrics: {
             ...(post.metrics as object),

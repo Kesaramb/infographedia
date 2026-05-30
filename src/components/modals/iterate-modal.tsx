@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useModal } from './modal-provider'
 import { useGenerate } from '@/hooks/use-generate'
-import { DNARenderer } from '@/components/dna-renderer'
+import { LiveInfographic } from '@/components/infographic/live-infographic'
 import {
   X,
   Sparkles,
@@ -28,7 +28,18 @@ type ModalStage = 'idle' | 'generating' | 'preview' | 'publishing' | 'done' | 'e
 export function IterateModal() {
   const { modal, closeModal } = useModal()
   const { user } = useAuth()
-  const { stage: genStage, dna, searchQueries, error: genError, generate, reset } = useGenerate()
+  const {
+    stage: genStage,
+    dna,
+    documentV2,
+    storyDocument,
+    renderEngine,
+    formatVersion,
+    searchQueries,
+    error: genError,
+    generate,
+    reset,
+  } = useGenerate()
   const [modalStage, setModalStage] = useState<ModalStage>('idle')
   const [prompt, setPrompt] = useState('')
   const [title, setTitle] = useState('')
@@ -42,12 +53,15 @@ export function IterateModal() {
       setModalStage('generating')
     } else if (genStage === 'success') {
       setModalStage('preview')
-      // Auto-fill title from generated DNA
-      if (dna) setTitle(dna.content.title)
+      if (storyDocument) {
+        setTitle(storyDocument.story.thesis)
+      } else if (dna) {
+        setTitle(dna.content.title)
+      }
     } else if (genStage === 'error') {
       setModalStage('error')
     }
-  }, [genStage, dna])
+  }, [genStage, dna, storyDocument])
 
   // Elapsed time counter during generation
   useEffect(() => {
@@ -68,11 +82,16 @@ export function IterateModal() {
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) return
-    await generate(prompt.trim(), modal.parentPost?.dna)
-  }, [prompt, generate, modal.parentPost?.dna])
+      await generate(prompt.trim(), modal.parentPost ? {
+        dna: modal.parentPost.dna,
+        documentV2: modal.parentPost.documentV2,
+        storyDocument: modal.parentPost.storyDocument,
+        renderEngine: modal.parentPost.renderEngine,
+      } : undefined)
+  }, [prompt, generate, modal.parentPost])
 
   const handlePublish = useCallback(async () => {
-    if (!dna) return
+    if (!dna || !storyDocument) return
     setModalStage('publishing')
     setPublishError(null)
 
@@ -82,8 +101,11 @@ export function IterateModal() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          title: title.trim() || dna.content.title,
+          title: title.trim() || storyDocument.story.thesis,
           description: dna.content.subtitle,
+          renderEngine,
+          formatVersion,
+          storyDocument,
           dna,
           parentPostId: modal.parentPost?.id,
         }),
@@ -106,7 +128,7 @@ export function IterateModal() {
       setPublishError(err instanceof Error ? err.message : 'Network error')
       setModalStage('preview')
     }
-  }, [dna, title, modal.parentPost?.id, closeModal, router])
+  }, [dna, storyDocument, title, modal.parentPost?.id, closeModal, router, formatVersion, renderEngine])
 
   const isIteration = modal.mode === 'iterate'
 
@@ -187,7 +209,14 @@ export function IterateModal() {
                 {/* Parent preview (iteration mode only) */}
                 {user && isIteration && modal.parentPost && modalStage === 'idle' && (
                   <div className="rounded-xl overflow-hidden border border-white/5 opacity-60 scale-[0.98] origin-top">
-                    <DNARenderer dna={modal.parentPost.dna} />
+                    <LiveInfographic
+                      formatVersion={modal.parentPost.formatVersion ?? 1}
+                      renderEngine={modal.parentPost.renderEngine}
+                      dna={modal.parentPost.dna}
+                      documentV2={modal.parentPost.documentV2}
+                      storyDocument={modal.parentPost.storyDocument}
+                      mode="preview"
+                    />
                   </div>
                 )}
 
@@ -257,7 +286,14 @@ export function IterateModal() {
 
                     {/* Live preview */}
                     <div className="border border-white/10 rounded-2xl overflow-hidden">
-                      <DNARenderer dna={dna} />
+                      <LiveInfographic
+                        formatVersion={formatVersion}
+                        renderEngine={renderEngine}
+                        dna={dna}
+                        documentV2={documentV2}
+                        storyDocument={storyDocument}
+                        mode="preview"
+                      />
                     </div>
 
                     {/* DNA badges */}

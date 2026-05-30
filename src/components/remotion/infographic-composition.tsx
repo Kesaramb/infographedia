@@ -1,41 +1,30 @@
 import { AbsoluteFill } from 'remotion'
 import type { InfographicDNA } from '@/lib/dna/schema'
-
-// Text blocks
-import { AnimatedTitle } from './blocks/animated-title'
-import { AnimatedSubtitle } from './blocks/animated-subtitle'
-import { AnimatedHook } from './blocks/animated-hook'
-import { AnimatedFootnote } from './blocks/animated-footnote'
-import { AnimatedSourceBadge } from './blocks/animated-source-badge'
-
-// Chart map
-import { ANIMATED_CHART_MAP } from './component-map'
+import type { CompiledLayoutColumn } from '@/lib/dna/rendering'
+import { ANIMATED_COMPONENT_MAP } from './component-map'
+import { compileLayout, REMOTION_RENDER_PROFILE, resolveDNAColors } from '@/lib/dna/rendering'
 
 interface InfographicCompositionProps {
   dna: InfographicDNA
 }
 
-/**
- * Root Remotion composition for an animated infographic.
- *
- * Renders all DNA components in order:
- * title → subtitle → hook → chart → footnote → source-badge
- *
- * Each component handles its own animation timing internally
- * using useCurrentFrame() + interpolate().
- */
-export function InfographicComposition({ dna }: InfographicCompositionProps) {
-  const { colors, chartType } = dna.presentation
-
-  const resolvedColors = {
-    primary: colors.primary,
-    secondary: colors.secondary || colors.primary,
-    background: colors.background,
-    text: colors.text,
-    accent: colors.accent || colors.primary,
+function getColumnFlex(width: CompiledLayoutColumn['width']): number {
+  switch (width) {
+    case 'wide':
+      return 1.12
+    case 'narrow':
+      return 0.88
+    case 'equal':
+      return 1
+    case 'full':
+    default:
+      return 1
   }
+}
 
-  const ChartComponent = ANIMATED_CHART_MAP[chartType]
+export function InfographicComposition({ dna }: InfographicCompositionProps) {
+  const compiledLayout = compileLayout(dna, REMOTION_RENDER_PROFILE)
+  const resolvedColors = resolveDNAColors(dna)
 
   return (
     <AbsoluteFill
@@ -43,26 +32,64 @@ export function InfographicComposition({ dna }: InfographicCompositionProps) {
         backgroundColor: resolvedColors.background,
         display: 'flex',
         flexDirection: 'column',
+        gap: 16,
+        padding: 16,
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
     >
-      {/* Text blocks */}
-      <AnimatedTitle dna={dna} colors={resolvedColors} />
-      <AnimatedSubtitle dna={dna} colors={resolvedColors} />
-      <AnimatedHook dna={dna} colors={resolvedColors} />
+      {compiledLayout.rows.map((row) => (
+        <div
+          key={row.id}
+          style={{
+            display: 'flex',
+            flexDirection: row.columns.length > 1 ? 'row' : 'column',
+            gap: row.gap,
+          }}
+        >
+          {row.columns.map((column) => (
+            <div
+              key={column.id}
+              style={{
+                flex: getColumnFlex(column.width),
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                borderRadius: column.panel === 'none' ? undefined : 28,
+                border: column.panel === 'none' ? undefined : `1px solid ${resolvedColors.text}18`,
+                background:
+                  column.panel === 'hero'
+                    ? `linear-gradient(180deg, ${resolvedColors.text}10 0%, transparent 100%)`
+                    : column.panel === 'glass'
+                      ? `linear-gradient(180deg, ${resolvedColors.text}0c 0%, transparent 100%)`
+                      : undefined,
+                padding: column.panel === 'none' ? 0 : 12,
+              }}
+            >
+              {column.blocks.map((block) => {
+                const Component = ANIMATED_COMPONENT_MAP[block.slot.type]
+                if (!Component) return null
 
-      {/* Chart — flexes to fill available space */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-        {ChartComponent ? (
-          <div style={{ width: '100%' }}>
-            <ChartComponent dna={dna} colors={resolvedColors} />
-          </div>
-        ) : null}
-      </div>
-
-      {/* Footer blocks */}
-      <AnimatedFootnote dna={dna} colors={resolvedColors} />
-      <AnimatedSourceBadge dna={dna} colors={resolvedColors} />
+                return (
+                  <div
+                    key={block.id}
+                    style={{
+                      flex: block.kind === 'chart' || block.kind === 'media' ? 1 : undefined,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent:
+                        block.kind === 'chart' || block.kind === 'media' ? 'center' : undefined,
+                      textAlign: block.align,
+                    }}
+                  >
+                    <Component dna={dna} colors={resolvedColors} block={block} />
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      ))}
     </AbsoluteFill>
   )
 }

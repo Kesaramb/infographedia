@@ -7,6 +7,7 @@ import { ArrowLeft, User, Settings, Loader2 } from 'lucide-react'
 import { DNARenderer } from '@/components/dna-renderer'
 import { useAuth } from '@/hooks/use-auth'
 import type { InfographicDNA } from '@/lib/dna/schema'
+import { getPostPath } from '@/lib/site'
 
 interface ProfileUser {
   id: number
@@ -17,6 +18,7 @@ interface ProfileUser {
 
 interface ProfilePost {
   id: number
+  slug: string
   title: string
   dna: InfographicDNA
 }
@@ -65,6 +67,7 @@ export default function ProfilePage() {
         setPosts(
           (postsData.docs ?? []).map((doc: Record<string, unknown>) => ({
             id: doc.id as number,
+            slug: (doc.slug as string) ?? String(doc.id),
             title: doc.title as string,
             dna: doc.dna as InfographicDNA,
           }))
@@ -164,7 +167,7 @@ export default function ProfilePage() {
           {posts.map((post) => (
             <div
               key={post.id}
-              onClick={() => router.push(`/post/${post.id}`)}
+              onClick={() => router.push(getPostPath(post.slug))}
               className="aspect-square overflow-hidden bg-neutral-900 relative group cursor-pointer"
             >
               <div className="w-full h-full scale-[2] origin-top-left pointer-events-none">

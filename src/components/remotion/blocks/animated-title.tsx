@@ -1,21 +1,11 @@
 import { useCurrentFrame, interpolate } from 'remotion'
-import type { InfographicDNA } from '@/lib/dna/schema'
+import type { AnimatedRenderableProps } from '@/components/remotion/types'
 
-interface AnimatedTextProps {
-  dna: InfographicDNA
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-    accent: string
-  }
-}
-
-export function AnimatedTitle({ dna, colors }: AnimatedTextProps) {
+export function AnimatedTitle({ dna, colors, block }: AnimatedRenderableProps) {
   const frame = useCurrentFrame()
-  const opacity = interpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' })
-  const translateY = interpolate(frame, [0, 30], [20, 0], { extrapolateRight: 'clamp' })
+  const localFrame = Math.max(0, frame - block.animation.startFrame)
+  const opacity = interpolate(localFrame, [0, 28], [0, 1], { extrapolateRight: 'clamp' })
+  const translateY = interpolate(localFrame, [0, 28], [20, 0], { extrapolateRight: 'clamp' })
 
   return (
     <div
@@ -27,6 +17,7 @@ export function AnimatedTitle({ dna, colors }: AnimatedTextProps) {
         fontWeight: 'bold',
         lineHeight: 1.2,
         padding: '24px 24px 0',
+        textAlign: block.align,
       }}
     >
       {dna.content.title}

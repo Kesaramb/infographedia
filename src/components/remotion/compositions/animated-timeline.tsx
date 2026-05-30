@@ -1,20 +1,10 @@
 import { useCurrentFrame, spring, useVideoConfig } from 'remotion'
-import type { InfographicDNA } from '@/lib/dna/schema'
+import type { AnimatedRenderableProps } from '@/components/remotion/types'
 
-interface AnimatedChartProps {
-  dna: InfographicDNA
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-    accent: string
-  }
-}
-
-export function AnimatedTimeline({ dna, colors }: AnimatedChartProps) {
+export function AnimatedTimeline({ dna, colors, block }: AnimatedRenderableProps) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
+  const localFrame = Math.max(0, frame - block.animation.startFrame)
   const data = dna.content.data
   const itemHeight = 60
   const totalHeight = data.length * itemHeight
@@ -34,7 +24,7 @@ export function AnimatedTimeline({ dna, colors }: AnimatedChartProps) {
 
         {data.map((point, i) => {
           const progress = spring({
-            frame: frame - 60 - i * 12,
+            frame: localFrame - i * 12,
             fps,
             config: { damping: 14, stiffness: 60 },
           })

@@ -31,6 +31,7 @@ export async function POST(
     await payload.update({
       collection: 'posts',
       id: postId,
+      draft: false,
       data: {
         metrics: {
           ...(post.metrics as object),

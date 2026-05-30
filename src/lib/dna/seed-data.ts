@@ -1,14 +1,14 @@
-import type { InfographicDNA } from './schema'
+import { DNASchema, type InfographicDNA, type InfographicDNAInput } from './schema'
 
 /**
  * 11 sample DNA objects for seeding the database.
  * Covers all chart types and multiple themes.
  * Each is a complete, valid InfographicDNA.
  */
-export const SEED_DNA: Array<{
+const RAW_SEED_DNA: Array<{
   title: string
   description: string
-  dna: InfographicDNA
+  dna: InfographicDNAInput
   tags: string[]
 }> = [
   // 1. Bar Chart — Glass Dark
@@ -546,3 +546,13 @@ export const SEED_DNA: Array<{
     },
   },
 ]
+
+export const SEED_DNA: Array<{
+  title: string
+  description: string
+  dna: InfographicDNA
+  tags: string[]
+}> = RAW_SEED_DNA.map((item) => ({
+  ...item,
+  dna: DNASchema.parse(item.dna),
+}))

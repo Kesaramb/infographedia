@@ -2,27 +2,32 @@
 
 import { useRef } from 'react'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { PostHeader } from './post-header'
 import { ActionToolbar } from './action-toolbar'
 import { WatermarkBadge } from './watermark-badge'
-import { DNARenderer } from '@/components/dna-renderer'
 import { useModal } from '@/components/modals/modal-provider'
 import { useDownloadInfographic } from '@/hooks/use-download-infographic'
 import type { InfographicDNA } from '@/lib/dna/schema'
-
-// Lazy-load Remotion player (no SSR — canvas APIs)
-const AnimatedDNARenderer = dynamic(
-  () => import('@/components/remotion/animated-dna-renderer').then((m) => m.AnimatedDNARenderer),
-  { ssr: false },
-)
+import { getPostPath } from '@/lib/site'
+import type { InfographicDocumentV2 } from '@/lib/antv/schema'
+import type { RenderEngineValue } from '@/lib/infographic-engine'
+import type { PostImage } from '@/lib/post-meta'
+import { getImageURL } from '@/lib/post-meta'
+import { LiveInfographic } from '@/components/infographic/live-infographic'
+import type { StoryDocumentV3 } from '@/lib/story/schema'
 
 export interface PostCardData {
   id: number | string
+  slug: string
   title: string
   description?: string
+  renderEngine: RenderEngineValue
+  formatVersion: 1 | 2 | 3
+  documentV2?: InfographicDocumentV2 | null
+  storyDocument?: StoryDocumentV3 | null
   dna: InfographicDNA
+  renderedImage?: PostImage
   createdAt: string
   author: {
     username: string
@@ -30,6 +35,7 @@ export interface PostCardData {
   }
   parentPost?: {
     id: number | string
+    slug?: string
     author?: {
       username: string
     }
@@ -57,74 +63,103 @@ export function PostCard({ post }: PostCardProps) {
   const router = useRouter()
   const { openIterate } = useModal()
   const infographicRef = useRef<HTMLDivElement>(null)
-  const { download, isDownloading } = useDownloadInfographic(infographicRef, post.id, post.title)
+  const postPath = getPostPath(post.slug)
+  const { download, isDownloading } = useDownloadInfographic(infographicRef, postPath, post.title, {
+    storySvg: post.storyDocument?.artifacts.svg ?? null,
+  })
   const parentAuthor = post.parentPost?.author?.username ?? null
 
   function handleIterate() {
     openIterate({
       id: post.id,
       title: post.title,
+      renderEngine: post.renderEngine,
+      formatVersion: post.formatVersion,
+      documentV2: post.documentV2,
+      storyDocument: post.storyDocument,
       dna: post.dna,
       author: post.author.username,
     })
   }
 
   return (
-    <article className="bg-neutral-900/30 border border-white/5 rounded-2xl overflow-hidden">
+    <article className="bg-neutral-900/30 border border-white/5 rounded-2xl overflow-hidden flex flex-col min-h-[var(--feed-card-h)] md:min-h-0">
       {/* Header: avatar, username, iteration attribution */}
-      <PostHeader
-        username={post.author.username}
-        avatarUrl={post.author.avatar}
-        parentAuthor={parentAuthor}
-        createdAt={post.createdAt}
-      />
+      <div className="flex-shrink-0">
+        <PostHeader
+          username={post.author.username}
+          avatarUrl={post.author.avatar}
+          parentAuthor={parentAuthor}
+          createdAt={post.createdAt}
+        />
+      </div>
 
       {/* Infographic — animated player for feed display */}
       <div
-        className="block relative cursor-pointer"
-        onClick={() => router.push(`/post/${post.id}`)}
+        className="relative cursor-pointer flex-grow overflow-hidden md:flex-grow-0 md:overflow-visible"
+        onClick={() => router.push(postPath)}
       >
-        <AnimatedDNARenderer dna={post.dna} />
+        <LiveInfographic
+          formatVersion={post.formatVersion}
+          renderEngine={post.renderEngine}
+          dna={post.dna}
+          documentV2={post.documentV2}
+          storyDocument={post.storyDocument}
+          renderedImageUrl={getImageURL(post.renderedImage)}
+          mode="feed"
+        />
         <WatermarkBadge />
       </div>
 
       {/* Offscreen static renderer — used for PNG export via html-to-image.
           Must be rendered (not display:none) so html-to-image can capture it. */}
-      <div
-        ref={infographicRef}
-        className="absolute -left-[9999px] top-0"
-        style={{ width: 600 }}
-        aria-hidden="true"
-      >
-        <DNARenderer dna={post.dna} />
-      </div>
+      {!post.storyDocument && (
+        <div
+          ref={infographicRef}
+          className="absolute -left-[9999px] top-0"
+          style={{ width: 600 }}
+          aria-hidden="true"
+        >
+          <LiveInfographic
+            formatVersion={post.formatVersion}
+            renderEngine={post.renderEngine}
+            dna={post.dna}
+            documentV2={post.documentV2}
+            storyDocument={post.storyDocument}
+            mode="static"
+          />
+        </div>
+      )}
 
       {/* Action Toolbar */}
-      <ActionToolbar
-        postId={post.id}
-        likes={post.metrics.likes}
-        saves={post.metrics.saves}
-        shares={post.metrics.shares}
-        commentCount={post.metrics.comments}
-        iterationCount={post.metrics.iterationCount}
-        isLiked={post.isLiked}
-        isSaved={post.isSaved}
-        onIterate={handleIterate}
-        onComment={() => router.push(`/post/${post.id}`)}
-        onDownload={download}
-        isDownloading={isDownloading}
-      />
+      <div className="flex-shrink-0">
+        <ActionToolbar
+          postId={post.id}
+          likes={post.metrics.likes}
+          saves={post.metrics.saves}
+          shares={post.metrics.shares}
+          commentCount={post.metrics.comments}
+          iterationCount={post.metrics.iterationCount}
+          isLiked={post.isLiked}
+          isSaved={post.isSaved}
+          onIterate={handleIterate}
+          onComment={() => router.push(postPath)}
+          onDownload={download}
+          isDownloading={isDownloading}
+          postPath={postPath}
+        />
+      </div>
 
       {/* Caption */}
-      <div className="px-4 pb-4">
-        <p className="text-sm text-white">
+      <div className="px-4 pb-3 flex-shrink-0 overflow-hidden">
+        <p className="text-sm text-white line-clamp-1 md:line-clamp-none">
           <Link href={`/profile/${post.author.username}`} className="font-semibold hover:underline">
             {post.author.username}
           </Link>{' '}
           <span className="text-neutral-300">{post.title}</span>
         </p>
         {post.description && (
-          <p className="text-xs text-neutral-500 mt-1 line-clamp-2">
+          <p className="text-xs text-neutral-500 mt-1 line-clamp-1 md:line-clamp-2">
             {post.description}
           </p>
         )}

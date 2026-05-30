@@ -7,6 +7,7 @@ import { SubtitleBlock } from './blocks/subtitle-block'
 import { HookBlock } from './blocks/hook-block'
 import { FootnoteBlock } from './blocks/footnote-block'
 import { SourceBadge } from './blocks/source-badge'
+import { HeroImageBlock, AnnotatedImageBlock, ScanCardBlock } from './blocks/media-blocks'
 
 // Charts
 import { BarChartBlock } from '@/components/charts/bar-chart'
@@ -33,6 +34,9 @@ export const COMPONENT_MAP: Record<string, ComponentType<DNAComponentProps>> = {
   'hook': HookBlock,
   'footnote': FootnoteBlock,
   'source-badge': SourceBadge,
+  'hero-image': HeroImageBlock,
+  'annotated-image': AnnotatedImageBlock,
+  'scan-card': ScanCardBlock,
 
   // Chart components
   'bar-chart': BarChartBlock,

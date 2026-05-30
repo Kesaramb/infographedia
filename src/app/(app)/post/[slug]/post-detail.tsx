@@ -1,40 +1,46 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import dynamic from 'next/dynamic'
-import { DNARenderer } from '@/components/dna-renderer'
 import { PostHeader } from '@/components/feed/post-header'
 import { ActionToolbar } from '@/components/feed/action-toolbar'
 import { WatermarkBadge } from '@/components/feed/watermark-badge'
 import { useModal } from '@/components/modals/modal-provider'
 import type { InfographicDNA } from '@/lib/dna/schema'
+import type { InfographicDocumentV2 } from '@/lib/antv/schema'
 import { CommentSection } from '@/components/comments/comment-section'
 import { useDownloadInfographic } from '@/hooks/use-download-infographic'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
-
-// Lazy-load Remotion player (no SSR — canvas APIs)
-const AnimatedDNARenderer = dynamic(
-  () => import('@/components/remotion/animated-dna-renderer').then((m) => m.AnimatedDNARenderer),
-  { ssr: false },
-)
+import { getPostPath } from '@/lib/site'
+import type { PostImage } from '@/lib/post-meta'
+import { getImageURL } from '@/lib/post-meta'
+import type { RenderEngineValue } from '@/lib/infographic-engine'
+import { LiveInfographic } from '@/components/infographic/live-infographic'
+import type { StoryDocumentV3 } from '@/lib/story/schema'
 
 interface PostDetailProps {
   post: {
     id: number
+    slug: string
     title: string
-    description?: string
+    description?: string | null
+    renderEngine: RenderEngineValue
+    formatVersion: 1 | 2 | 3
+    documentV2?: InfographicDocumentV2 | null
+    storyDocument?: StoryDocumentV3 | null
     dna: InfographicDNA
+    renderedImage?: PostImage
     createdAt: string
     author: {
       username: string
     }
     parentPost?: {
       id: number
+      slug?: string
       title: string
       author?: {
         username: string
-      }
+      } | null
     } | null
     metrics: {
       likes: number
@@ -54,9 +60,13 @@ export function PostDetail({ post }: PostDetailProps) {
   const parentAuthor = post.parentPost?.author?.username ?? null
   const { openIterate } = useModal()
   const infographicRef = useRef<HTMLDivElement>(null)
-  const { download, isDownloading } = useDownloadInfographic(infographicRef, post.id, post.title)
+  const postPath = getPostPath(post.slug)
+  const { download, isDownloading } = useDownloadInfographic(infographicRef, postPath, post.title, {
+    storySvg: post.storyDocument?.artifacts.svg ?? null,
+  })
   const [isLiked, setIsLiked] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
+  const sources = post.storyDocument?.evidence.sources ?? post.dna.content.sources
 
   // Fetch interaction state for this post on mount
   useEffect(() => {
@@ -75,6 +85,10 @@ export function PostDetail({ post }: PostDetailProps) {
     openIterate({
       id: post.id,
       title: post.title,
+      renderEngine: post.renderEngine,
+      formatVersion: post.formatVersion,
+      documentV2: post.documentV2,
+      storyDocument: post.storyDocument,
       dna: post.dna,
       author: post.author.username,
     })
@@ -104,19 +118,36 @@ export function PostDetail({ post }: PostDetailProps) {
 
       {/* Animated infographic */}
       <div className="relative">
-        <AnimatedDNARenderer dna={post.dna} />
+        <LiveInfographic
+          formatVersion={post.formatVersion}
+          renderEngine={post.renderEngine}
+          dna={post.dna}
+          documentV2={post.documentV2}
+          storyDocument={post.storyDocument}
+          renderedImageUrl={getImageURL(post.renderedImage)}
+          mode="detail"
+        />
         <WatermarkBadge />
       </div>
 
       {/* Offscreen static renderer — used for PNG export via html-to-image */}
-      <div
-        ref={infographicRef}
-        className="absolute -left-[9999px] top-0"
-        style={{ width: 600 }}
-        aria-hidden="true"
-      >
-        <DNARenderer dna={post.dna} />
-      </div>
+      {!post.storyDocument && (
+        <div
+          ref={infographicRef}
+          className="absolute -left-[9999px] top-0"
+          style={{ width: 600 }}
+          aria-hidden="true"
+        >
+          <LiveInfographic
+            formatVersion={post.formatVersion}
+            renderEngine={post.renderEngine}
+            dna={post.dna}
+            documentV2={post.documentV2}
+            storyDocument={post.storyDocument}
+            mode="static"
+          />
+        </div>
+      )}
 
       {/* Action toolbar */}
       <ActionToolbar
@@ -128,6 +159,7 @@ export function PostDetail({ post }: PostDetailProps) {
         iterationCount={post.metrics.iterationCount}
         isLiked={isLiked}
         isSaved={isSaved}
+        postPath={postPath}
         onIterate={handleIterate}
         onDownload={download}
         isDownloading={isDownloading}
@@ -142,13 +174,13 @@ export function PostDetail({ post }: PostDetailProps) {
       </div>
 
       {/* Sources */}
-      {post.dna.content.sources.length > 0 && (
+      {sources.length > 0 && (
         <div className="px-4 py-3 border-t border-white/5">
           <h3 className="text-[10px] text-neutral-600 uppercase tracking-wider mb-2">
             Sources
           </h3>
           <div className="flex flex-col gap-2">
-            {post.dna.content.sources.map((source, i) => (
+            {sources.map((source, i) => (
               <a
                 key={i}
                 href={source.url}
@@ -174,7 +206,7 @@ export function PostDetail({ post }: PostDetailProps) {
             Iterated from
           </h3>
           <Link
-            href={`/post/${post.parentPost.id}`}
+            href={getPostPath(post.parentPost.slug ?? String(post.parentPost.id))}
             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
           >
             <span className="text-xs text-neutral-300">
@@ -193,14 +225,25 @@ export function PostDetail({ post }: PostDetailProps) {
       <CommentSection postId={post.id} />
 
       {/* Data details */}
-      <details className="px-4 py-3 border-t border-white/5 group">
-        <summary className="text-[10px] text-neutral-600 uppercase tracking-wider cursor-pointer hover:text-neutral-400 transition-colors">
-          View DNA ({post.dna.content.data.length} data points)
-        </summary>
-        <pre className="mt-2 bg-black/30 border border-white/10 rounded-xl p-3 text-[10px] text-neutral-400 overflow-x-auto max-h-64 overflow-y-auto">
-          {JSON.stringify(post.dna, null, 2)}
-        </pre>
-      </details>
+      {post.formatVersion >= 3 && post.storyDocument ? (
+        <details className="px-4 py-3 border-t border-white/5 group">
+          <summary className="text-[10px] text-neutral-600 uppercase tracking-wider cursor-pointer hover:text-neutral-400 transition-colors">
+            View StoryDocument ({post.storyDocument.scene.panels.length} panels)
+          </summary>
+          <pre className="mt-2 bg-black/30 border border-white/10 rounded-xl p-3 text-[10px] text-neutral-400 overflow-x-auto max-h-64 overflow-y-auto">
+            {JSON.stringify(post.storyDocument, null, 2)}
+          </pre>
+        </details>
+      ) : (
+        <details className="px-4 py-3 border-t border-white/5 group">
+          <summary className="text-[10px] text-neutral-600 uppercase tracking-wider cursor-pointer hover:text-neutral-400 transition-colors">
+            View DNA ({post.dna.content.data.length} data points)
+          </summary>
+          <pre className="mt-2 bg-black/30 border border-white/10 rounded-xl p-3 text-[10px] text-neutral-400 overflow-x-auto max-h-64 overflow-y-auto">
+            {JSON.stringify(post.dna, null, 2)}
+          </pre>
+        </details>
+      )}
     </div>
   )
 }

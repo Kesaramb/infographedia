@@ -1,22 +1,12 @@
 import { useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion'
-import type { InfographicDNA } from '@/lib/dna/schema'
-
-interface AnimatedChartProps {
-  dna: InfographicDNA
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-    accent: string
-  }
-}
+import type { AnimatedRenderableProps } from '@/components/remotion/types'
 
 const GROUP_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6']
 
-export function AnimatedGroupedBar({ dna, colors }: AnimatedChartProps) {
+export function AnimatedGroupedBar({ dna, colors, block }: AnimatedRenderableProps) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
+  const localFrame = Math.max(0, frame - block.animation.startFrame)
   const data = dna.content.data
 
   // Extract groups from metadata
@@ -53,7 +43,7 @@ export function AnimatedGroupedBar({ dna, colors }: AnimatedChartProps) {
 
           const targetHeight = (point.value / maxValue) * (chartHeight - 20)
           const progress = spring({
-            frame: frame - 60 - i * 8,
+            frame: localFrame - i * 8,
             fps,
             config: { damping: 14, stiffness: 60 },
           })
@@ -85,7 +75,7 @@ export function AnimatedGroupedBar({ dna, colors }: AnimatedChartProps) {
                 fontSize={9}
                 fontWeight="bold"
                 fill={colors.text}
-                opacity={interpolate(frame, [90 + i * 8, 105 + i * 8], [0, 1], {
+                opacity={interpolate(localFrame, [30 + i * 8, 45 + i * 8], [0, 1], {
                   extrapolateLeft: 'clamp',
                   extrapolateRight: 'clamp',
                 })}

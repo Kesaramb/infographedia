@@ -1,17 +1,6 @@
 import { useCurrentFrame, spring, useVideoConfig } from 'remotion'
-import type { InfographicDNA } from '@/lib/dna/schema'
 import { getIconSVGPaths } from '@/components/charts/pictogram/icon-registry'
-
-interface AnimatedChartProps {
-  dna: InfographicDNA
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-    accent: string
-  }
-}
+import type { AnimatedRenderableProps } from '@/components/remotion/types'
 
 const MAX_ICONS = 20
 const ICON_SIZE = 28
@@ -19,9 +8,10 @@ const ICON_GAP = 6
 const ICONS_PER_ROW = 10
 const ROW_HEIGHT = 70
 
-export function AnimatedPictogram({ dna, colors }: AnimatedChartProps) {
+export function AnimatedPictogram({ dna, colors, block }: AnimatedRenderableProps) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
+  const localFrame = Math.max(0, frame - block.animation.startFrame)
   const data = dna.content.data
 
   const totalHeight = data.length * ROW_HEIGHT + 20
@@ -38,7 +28,7 @@ export function AnimatedPictogram({ dna, colors }: AnimatedChartProps) {
 
           // Label + value text
           const labelProgress = spring({
-            frame: frame - 50 - rowIndex * 15,
+            frame: localFrame - rowIndex * 15,
             fps,
             config: { damping: 14, stiffness: 60 },
           })
@@ -74,7 +64,7 @@ export function AnimatedPictogram({ dna, colors }: AnimatedChartProps) {
               {Array.from({ length: iconCount }).map((_, iconIdx) => {
                 const currentGlobalIndex = globalIconIndex++
                 const progress = spring({
-                  frame: frame - 60 - currentGlobalIndex * 6,
+                  frame: localFrame - 8 - currentGlobalIndex * 6,
                   fps,
                   config: { damping: 14, stiffness: 60 },
                 })

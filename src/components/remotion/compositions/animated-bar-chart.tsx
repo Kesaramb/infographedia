@@ -1,20 +1,10 @@
 import { useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion'
-import type { InfographicDNA } from '@/lib/dna/schema'
+import type { AnimatedRenderableProps } from '@/components/remotion/types'
 
-interface AnimatedChartProps {
-  dna: InfographicDNA
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-    accent: string
-  }
-}
-
-export function AnimatedBarChart({ dna, colors }: AnimatedChartProps) {
+export function AnimatedBarChart({ dna, colors, block }: AnimatedRenderableProps) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
+  const localFrame = Math.max(0, frame - block.animation.startFrame)
   const data = dna.content.data
 
   const maxValue = Math.max(...data.map((d) => d.value))
@@ -40,7 +30,7 @@ export function AnimatedBarChart({ dna, colors }: AnimatedChartProps) {
         {data.map((point, i) => {
           const targetHeight = (point.value / maxValue) * (chartHeight - 20)
           const progress = spring({
-            frame: frame - 60 - i * 8,
+            frame: localFrame - i * 8,
             fps,
             config: { damping: 14, stiffness: 60 },
           })
@@ -68,7 +58,7 @@ export function AnimatedBarChart({ dna, colors }: AnimatedChartProps) {
                 fontSize={11}
                 fontWeight="bold"
                 fill={colors.text}
-                opacity={interpolate(frame, [90 + i * 8, 105 + i * 8], [0, 1], {
+                opacity={interpolate(localFrame, [30 + i * 8, 45 + i * 8], [0, 1], {
                   extrapolateLeft: 'clamp',
                   extrapolateRight: 'clamp',
                 })}

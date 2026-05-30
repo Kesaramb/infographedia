@@ -91,7 +91,60 @@ export const AIAgentConfig: GlobalConfig = {
         description: 'Allow the AI to search past generation data via Qdrant vector store. Requires QDRANT_URL and VOYAGE_API_KEY.',
       },
     },
-
+    {
+      name: 'enableStoryPipelineV3',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'Enable Story Pipeline V3',
+      admin: {
+        description: 'Use StoryDocument v3 as the canonical generation and publish pipeline for new posts.',
+      },
+    },
+    {
+      name: 'enableLegacyReadAdapter',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'Enable Legacy Read Adapter',
+      admin: {
+        description: 'Keep legacy DNA and documentV2 posts readable while new writes use StoryDocument v3.',
+      },
+    },
+    {
+      name: 'enableInsightMiner',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'Enable Insight Miner',
+      admin: {
+        description: 'Score leaders, laggards, outliers, reversals, and turning points before story authoring.',
+      },
+    },
+    {
+      name: 'enableCritic',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'Enable Critic',
+      admin: {
+        description: 'Run story and render quality gates before preview and publish.',
+      },
+    },
+    {
+      name: 'enableDiversityPlanner',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'Enable Diversity Planner',
+      admin: {
+        description: 'Pre-plan layout family, hero treatment, and visual density before final DNA generation.',
+      },
+    },
+    {
+      name: 'enableGroundedMedia',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'Enable Grounded Media',
+      admin: {
+        description: 'Allow the AI pipeline to select sourced supporting images for hero and evidence blocks.',
+      },
+    },
     // ── System Prompt ────────────────────────────────────────────────
     {
       name: 'systemPrompt',
@@ -163,6 +216,73 @@ export const AIAgentConfig: GlobalConfig = {
         { label: 'Editorial', value: 'editorial' },
         { label: 'Warm Earth', value: 'warm-earth' },
         { label: 'Ocean Depth', value: 'ocean-depth' },
+      ],
+    },
+    {
+      name: 'allowedLayoutFamilies',
+      type: 'select',
+      hasMany: true,
+      defaultValue: [
+        'editorial-cover',
+        'spotlight-rail',
+        'evidence-board',
+        'briefing-sheet',
+      ],
+      admin: {
+        description: 'Which layout families the planner is allowed to use for new generations.',
+      },
+      options: [
+        { label: 'Editorial Cover', value: 'editorial-cover' },
+        { label: 'Spotlight Rail', value: 'spotlight-rail' },
+        { label: 'Evidence Board', value: 'evidence-board' },
+        { label: 'Briefing Sheet', value: 'briefing-sheet' },
+      ],
+    },
+    {
+      name: 'allowedAntVTemplateCategories',
+      type: 'select',
+      hasMany: true,
+      defaultValue: [
+        'list',
+        'sequence',
+        'compare',
+        'chart',
+        'hierarchy',
+        'relation',
+      ],
+      admin: {
+        description: 'Which AntV structural template categories the v2 planner may choose.',
+      },
+      options: [
+        { label: 'List', value: 'list' },
+        { label: 'Sequence', value: 'sequence' },
+        { label: 'Compare', value: 'compare' },
+        { label: 'Chart', value: 'chart' },
+        { label: 'Hierarchy', value: 'hierarchy' },
+        { label: 'Relation', value: 'relation' },
+      ],
+    },
+    {
+      name: 'allowedAntVThemes',
+      type: 'select',
+      hasMany: true,
+      defaultValue: [
+        'glass-dark',
+        'minimalist',
+        'editorial',
+        'ocean-depth',
+      ],
+      admin: {
+        description: 'Which Infographedia theme plans the AntV engine may translate into AntV theme syntax.',
+      },
+      options: [
+        { label: 'Glass Dark', value: 'glass-dark' },
+        { label: 'Minimalist', value: 'minimalist' },
+        { label: 'Editorial', value: 'editorial' },
+        { label: 'Ocean Depth', value: 'ocean-depth' },
+        { label: 'Warm Earth', value: 'warm-earth' },
+        { label: 'Glass Light', value: 'glass-light' },
+        { label: 'Neon Cyberpunk', value: 'neon-cyberpunk' },
       ],
     },
 

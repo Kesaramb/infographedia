@@ -1,3 +1,4 @@
+import type { ZodType } from 'zod/v4'
 import { DNASchema, type InfographicDNA } from '@/lib/dna/schema'
 
 /**
@@ -16,7 +17,7 @@ export type ParseResult =
  * Extract JSON from AI response text.
  * Handles: raw JSON, ```json fences, ``` fences, JSON embedded in prose.
  */
-function extractJSON(text: string): string {
+export function extractJSON(text: string): string {
   // Try to find JSON in code fences first
   const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/)
   if (fenceMatch) {
@@ -42,28 +43,38 @@ function extractJSON(text: string): string {
  * Parse and validate AI response text into InfographicDNA.
  */
 export function parseAIResponse(responseText: string): ParseResult {
+  const result = parseSchemaResponse(responseText, DNASchema, 'DNA schema')
+
+  if (result.success) {
+    return { success: true, dna: result.data }
+  }
+
+  return result
+}
+
+export function parseSchemaResponse<T>(
+  responseText: string,
+  schema: ZodType<T>,
+  schemaLabel: string,
+): { success: true; data: T } | { success: false; error: string; rawText: string } {
   const jsonText = extractJSON(responseText)
 
-  // Step 1: Parse as JSON
   let parsed: unknown
   try {
     parsed = JSON.parse(jsonText)
   } catch {
     return {
       success: false,
-      error: `Invalid JSON: Could not parse the response as JSON. Make sure to output ONLY valid JSON with no markdown or explanation.`,
+      error: 'Invalid JSON: Could not parse the response as JSON. Make sure to output ONLY valid JSON with no markdown or explanation.',
       rawText: responseText,
     }
   }
 
-  // Step 2: Validate against Zod schema
-  const result = DNASchema.safeParse(parsed)
-
+  const result = schema.safeParse(parsed)
   if (result.success) {
-    return { success: true, dna: result.data }
+    return { success: true, data: result.data }
   }
 
-  // Build a detailed error message for the AI to self-correct
   const issues = result.error.issues
     .map((issue) => {
       const path = issue.path.join('.')
@@ -73,7 +84,7 @@ export function parseAIResponse(responseText: string): ParseResult {
 
   return {
     success: false,
-    error: `Schema validation failed:\n${issues}\n\nFix these issues and regenerate the JSON.`,
+    error: `${schemaLabel} validation failed:\n${issues}\n\nFix these issues and regenerate the JSON.`,
     rawText: responseText,
   }
 }
@@ -89,5 +100,5 @@ ${error}
 Previous output (first 1000 chars):
 ${rawText.slice(0, 1000)}
 
-Please fix the issues and output ONLY valid JSON matching the DNA schema. No markdown, no explanation.`
+Please fix the issues and output ONLY valid JSON matching the requested schema. No markdown, no explanation.`
 }

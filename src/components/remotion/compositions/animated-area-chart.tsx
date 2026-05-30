@@ -1,19 +1,9 @@
 import { useCurrentFrame, interpolate } from 'remotion'
-import type { InfographicDNA } from '@/lib/dna/schema'
+import type { AnimatedRenderableProps } from '@/components/remotion/types'
 
-interface AnimatedChartProps {
-  dna: InfographicDNA
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-    accent: string
-  }
-}
-
-export function AnimatedAreaChart({ dna, colors }: AnimatedChartProps) {
+export function AnimatedAreaChart({ dna, colors, block }: AnimatedRenderableProps) {
   const frame = useCurrentFrame()
+  const localFrame = Math.max(0, frame - block.animation.startFrame)
   const data = dna.content.data
 
   const chartWidth = 500
@@ -36,7 +26,7 @@ export function AnimatedAreaChart({ dna, colors }: AnimatedChartProps) {
   const lineD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
   const areaD = lineD + ` L ${points[points.length - 1].x} ${baseline} L ${points[0].x} ${baseline} Z`
 
-  const revealProgress = interpolate(frame, [60, 140], [0, 1], {
+  const revealProgress = interpolate(localFrame, [0, 80], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   })
@@ -86,8 +76,8 @@ export function AnimatedAreaChart({ dna, colors }: AnimatedChartProps) {
         {/* Data points */}
         {points.map((p, i) => {
           const pointProgress = interpolate(
-            frame,
-            [60 + (i / (data.length - 1 || 1)) * 80, 80 + (i / (data.length - 1 || 1)) * 80],
+            localFrame,
+            [(i / (data.length - 1 || 1)) * 80, 20 + (i / (data.length - 1 || 1)) * 80],
             [0, 1],
             { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
           )

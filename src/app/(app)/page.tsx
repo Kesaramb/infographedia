@@ -21,7 +21,7 @@ export default function HomePage() {
       </header>
 
       {/* Feed */}
-      <div className="pt-16 md:pt-4 px-0">
+      <div className="pt-14 md:pt-4 px-0">
         <Feed />
       </div>
     </div>

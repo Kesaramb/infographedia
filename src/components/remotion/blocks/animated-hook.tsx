@@ -1,23 +1,13 @@
 import { useCurrentFrame, interpolate } from 'remotion'
-import type { InfographicDNA } from '@/lib/dna/schema'
+import type { AnimatedRenderableProps } from '@/components/remotion/types'
 
-interface AnimatedTextProps {
-  dna: InfographicDNA
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-    accent: string
-  }
-}
-
-export function AnimatedHook({ dna, colors }: AnimatedTextProps) {
+export function AnimatedHook({ dna, colors, block }: AnimatedRenderableProps) {
   const frame = useCurrentFrame()
   if (!dna.content.hook) return null
+  const localFrame = Math.max(0, frame - block.animation.startFrame)
 
-  const opacity = interpolate(frame, [40, 70], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
-  const scale = interpolate(frame, [40, 70], [0.9, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  const opacity = interpolate(localFrame, [0, 24], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  const scale = interpolate(localFrame, [0, 24], [0.92, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
 
   return (
     <div
@@ -29,6 +19,7 @@ export function AnimatedHook({ dna, colors }: AnimatedTextProps) {
         fontWeight: 'bold',
         fontStyle: 'italic',
         padding: '8px 24px 0',
+        textAlign: block.align,
       }}
     >
       {dna.content.hook}

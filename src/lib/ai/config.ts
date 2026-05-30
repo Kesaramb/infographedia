@@ -1,6 +1,8 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { DEFAULT_SYSTEM_PROMPT } from './prompts'
+import type { LayoutFamilyValue, ThemeNameValue } from '@/lib/dna/schema'
+import type { AntVTemplateCategoryValue } from '@/lib/antv/schema'
 
 // ============================================================
 // AI Configuration — reads admin-editable settings from Payload
@@ -18,9 +20,24 @@ export interface AIConfig {
   maxToolRounds: number
   enableWebSearch: boolean
   enableKnowledgeBase: boolean
+  enableStoryPipelineV3: boolean
+  enableLegacyReadAdapter: boolean
+  enableInsightMiner: boolean
+  enableCritic: boolean
+  enableDiversityPlanner: boolean
+  enableGroundedMedia: boolean
+  // Deprecated compatibility fields retained in code until old helper modules are deleted.
+  enableAntVGenerator: boolean
+  enableAntVPreview: boolean
+  enableEngineRouter: boolean
+  enableMultiPanelAntV: boolean
+  defaultNewPostEngine: 'dna-legacy' | 'antv'
   systemPrompt: string
   allowedChartTypes: string[]
   allowedThemes: string[]
+  allowedLayoutFamilies: LayoutFamilyValue[]
+  allowedAntVTemplateCategories: AntVTemplateCategoryValue[]
+  allowedAntVThemes: ThemeNameValue[]
   fewShotExamples: Array<{ label: string; dnaJson: unknown }>
 }
 
@@ -28,9 +45,20 @@ const DEFAULTS: AIConfig = {
   model: 'claude-sonnet-4-20250514',
   temperature: 1,
   maxTokens: 4096,
-  maxToolRounds: 5,
+  maxToolRounds: 8,
   enableWebSearch: true,
   enableKnowledgeBase: true,
+  enableStoryPipelineV3: true,
+  enableLegacyReadAdapter: true,
+  enableInsightMiner: true,
+  enableCritic: true,
+  enableDiversityPlanner: true,
+  enableGroundedMedia: true,
+  enableAntVGenerator: false,
+  enableAntVPreview: false,
+  enableEngineRouter: true,
+  enableMultiPanelAntV: true,
+  defaultNewPostEngine: 'dna-legacy',
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   allowedChartTypes: [
     'bar-chart',
@@ -52,6 +80,26 @@ const DEFAULTS: AIConfig = {
     'minimalist',
     'editorial',
     'warm-earth',
+    'ocean-depth',
+  ],
+  allowedLayoutFamilies: [
+    'editorial-cover',
+    'spotlight-rail',
+    'evidence-board',
+    'briefing-sheet',
+  ],
+  allowedAntVTemplateCategories: [
+    'list',
+    'sequence',
+    'compare',
+    'chart',
+    'hierarchy',
+    'relation',
+  ],
+  allowedAntVThemes: [
+    'glass-dark',
+    'minimalist',
+    'editorial',
     'ocean-depth',
   ],
   fewShotExamples: [],
@@ -84,6 +132,17 @@ export async function getAIConfig(): Promise<AIConfig> {
       maxToolRounds: typeof global.maxToolRounds === 'number' ? global.maxToolRounds : DEFAULTS.maxToolRounds,
       enableWebSearch: typeof global.enableWebSearch === 'boolean' ? global.enableWebSearch : DEFAULTS.enableWebSearch,
       enableKnowledgeBase: typeof global.enableKnowledgeBase === 'boolean' ? global.enableKnowledgeBase : DEFAULTS.enableKnowledgeBase,
+      enableStoryPipelineV3: typeof global.enableStoryPipelineV3 === 'boolean' ? global.enableStoryPipelineV3 : DEFAULTS.enableStoryPipelineV3,
+      enableLegacyReadAdapter: typeof global.enableLegacyReadAdapter === 'boolean' ? global.enableLegacyReadAdapter : DEFAULTS.enableLegacyReadAdapter,
+      enableInsightMiner: typeof global.enableInsightMiner === 'boolean' ? global.enableInsightMiner : DEFAULTS.enableInsightMiner,
+      enableCritic: typeof global.enableCritic === 'boolean' ? global.enableCritic : DEFAULTS.enableCritic,
+      enableDiversityPlanner: typeof global.enableDiversityPlanner === 'boolean' ? global.enableDiversityPlanner : DEFAULTS.enableDiversityPlanner,
+      enableGroundedMedia: typeof global.enableGroundedMedia === 'boolean' ? global.enableGroundedMedia : DEFAULTS.enableGroundedMedia,
+      enableAntVGenerator: DEFAULTS.enableAntVGenerator,
+      enableAntVPreview: DEFAULTS.enableAntVPreview,
+      enableEngineRouter: DEFAULTS.enableEngineRouter,
+      enableMultiPanelAntV: DEFAULTS.enableMultiPanelAntV,
+      defaultNewPostEngine: DEFAULTS.defaultNewPostEngine,
       systemPrompt: (typeof global.systemPrompt === 'string' && global.systemPrompt) || DEFAULTS.systemPrompt,
       allowedChartTypes: Array.isArray(global.allowedChartTypes) && global.allowedChartTypes.length > 0
         ? (global.allowedChartTypes as string[])
@@ -91,6 +150,15 @@ export async function getAIConfig(): Promise<AIConfig> {
       allowedThemes: Array.isArray(global.allowedThemes) && global.allowedThemes.length > 0
         ? (global.allowedThemes as string[])
         : DEFAULTS.allowedThemes,
+      allowedLayoutFamilies: Array.isArray(global.allowedLayoutFamilies) && global.allowedLayoutFamilies.length > 0
+        ? (global.allowedLayoutFamilies as LayoutFamilyValue[])
+        : DEFAULTS.allowedLayoutFamilies,
+      allowedAntVTemplateCategories: Array.isArray(global.allowedAntVTemplateCategories) && global.allowedAntVTemplateCategories.length > 0
+        ? (global.allowedAntVTemplateCategories as AntVTemplateCategoryValue[])
+        : DEFAULTS.allowedAntVTemplateCategories,
+      allowedAntVThemes: Array.isArray(global.allowedAntVThemes) && global.allowedAntVThemes.length > 0
+        ? (global.allowedAntVThemes as ThemeNameValue[])
+        : DEFAULTS.allowedAntVThemes,
       fewShotExamples: Array.isArray(global.fewShotExamples)
         ? (global.fewShotExamples as AIConfig['fewShotExamples'])
         : [],

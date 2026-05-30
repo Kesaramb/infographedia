@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { ensurePostSlug } from '@/lib/posts'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
@@ -16,6 +17,9 @@ export const Posts: CollectionConfig = {
       return (req.user as { role?: string }).role === 'admin'
     },
   },
+  hooks: {
+    beforeValidate: [ensurePostSlug],
+  },
   fields: [
     {
       name: 'author',
@@ -31,9 +35,61 @@ export const Posts: CollectionConfig = {
       maxLength: 120,
     },
     {
+      name: 'slug',
+      type: 'text',
+      required: true,
+      unique: true,
+      index: true,
+      admin: {
+        description: 'Canonical URL slug. Auto-generated from the title when left empty.',
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'renderEngine',
+      type: 'select',
+      required: true,
+      defaultValue: 'dna-legacy',
+      options: [
+        { label: 'Legacy DNA', value: 'dna-legacy' },
+        { label: 'AntV v2', value: 'antv' },
+        { label: 'StoryDocument v3', value: 'story-v3' },
+      ],
+      admin: {
+        description: 'Legacy compatibility field. New posts should use StoryDocument v3.',
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'formatVersion',
+      type: 'number',
+      required: true,
+      defaultValue: 1,
+      min: 1,
+      max: 3,
+      admin: {
+        description: 'Post document format version.',
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'description',
       type: 'textarea',
       maxLength: 500,
+    },
+    {
+      name: 'documentV2',
+      type: 'json',
+      admin: {
+        description: 'Legacy AntV-first document format for v2 posts.',
+      },
+    },
+    {
+      name: 'storyDocument',
+      type: 'json',
+      admin: {
+        description: 'Canonical StoryDocument v3 format for new posts.',
+      },
     },
     {
       name: 'dna',

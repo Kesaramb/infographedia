@@ -1,22 +1,12 @@
 import { useCurrentFrame, interpolate } from 'remotion'
-import type { InfographicDNA } from '@/lib/dna/schema'
+import type { AnimatedRenderableProps } from '@/components/remotion/types'
 
-interface AnimatedTextProps {
-  dna: InfographicDNA
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-    accent: string
-  }
-}
-
-export function AnimatedFootnote({ dna, colors }: AnimatedTextProps) {
+export function AnimatedFootnote({ dna, colors, block }: AnimatedRenderableProps) {
   const frame = useCurrentFrame()
   if (!dna.content.footnotes) return null
+  const localFrame = Math.max(0, frame - block.animation.startFrame)
 
-  const opacity = interpolate(frame, [160, 190], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  const opacity = interpolate(localFrame, [0, 18], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
 
   return (
     <div
@@ -25,6 +15,7 @@ export function AnimatedFootnote({ dna, colors }: AnimatedTextProps) {
         color: colors.text,
         fontSize: 11,
         padding: '4px 24px',
+        textAlign: block.align,
       }}
     >
       {dna.content.footnotes}

@@ -75,7 +75,7 @@ export function Feed() {
   // Initial loading state
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 px-0">
+      <div className="flex flex-col gap-2 md:gap-6 px-0">
         {Array.from({ length: 3 }).map((_, i) => (
           <PostCardSkeleton key={i} />
         ))}
@@ -116,17 +116,15 @@ export function Feed() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-2 md:gap-6">
       {posts.map((post, index) => (
         <motion.div
           key={post.id}
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-50px' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{
-            duration: 0.4,
-            delay: Math.min(index * 0.08, 0.4),
-            ease: [0.25, 0.1, 0.25, 1],
+            duration: 0.3,
+            delay: index < PAGE_SIZE ? Math.min(index * 0.05, 0.3) : 0,
           }}
         >
           <PostCard post={post} />

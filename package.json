@@ -20,8 +20,10 @@
   "packageManager": "pnpm@10.29.3",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
+    "@antv/infographic": "0.2.16",
     "@payloadcms/db-postgres": "^3.77.0",
     "@payloadcms/next": "^3.77.0",
+    "@payloadcms/plugin-seo": "3.77.0",
     "@payloadcms/richtext-lexical": "^3.77.0",
     "@payloadcms/ui": "^3.77.0",
     "@qdrant/js-client-rest": "^1.17.0",

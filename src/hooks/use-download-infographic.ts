@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { toPng } from 'html-to-image'
 import { useToast } from '@/components/ui/toast'
+import { getSiteURL } from '@/lib/site'
 
 const FOOTER_HEIGHT = 40
 const FOOTER_BG = '#0a0a0a'
@@ -20,19 +21,34 @@ const CAPTURE_OPTIONS = {
 
 export function useDownloadInfographic(
   ref: React.RefObject<HTMLDivElement | null>,
-  postId: number | string,
+  postPath: string,
   title: string,
+  options?: {
+    storySvg?: string | null
+  },
 ) {
   const [isDownloading, setIsDownloading] = useState(false)
   const { toast } = useToast()
 
   const download = useCallback(async () => {
     const node = ref.current
-    if (!node || isDownloading) return
+    const hasStorySvg = Boolean(options?.storySvg?.trim())
+    if ((!node && !hasStorySvg) || isDownloading) return
 
     setIsDownloading(true)
 
     try {
+      if (hasStorySvg && options?.storySvg) {
+        const finalDataUrl = await buildDownloadFromSvg(options.storySvg, postPath)
+        triggerDownload(finalDataUrl, title)
+        toast('Infographic downloaded', 'success')
+        return
+      }
+
+      if (!node) {
+        throw new Error('Download capture node unavailable')
+      }
+
       // Move the offscreen renderer into the viewport so Recharts
       // ResponsiveContainer can measure dimensions properly.
       const savedCss = node.style.cssText
@@ -93,23 +109,19 @@ export function useDownloadInfographic(
       ctx.fillStyle = FOOTER_TEXT_COLOR
       ctx.font = FOOTER_FONT
       ctx.textBaseline = 'middle'
+      const postURL = new URL(
+        postPath,
+        typeof window !== 'undefined' ? window.location.origin : getSiteURL(),
+      )
       ctx.fillText(
-        `INFOGRAPHEDIA  ·  infographedia.com/post/${postId}`,
+        `INFOGRAPHEDIA  ·  ${postURL.host}${postURL.pathname}`,
         dotX + 12,
         dotY,
       )
 
       // Trigger download
       const finalDataUrl = canvas.toDataURL('image/png')
-      const link = document.createElement('a')
-      const safeTitle = title
-        .replace(/[^a-zA-Z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .toLowerCase()
-        .slice(0, 50)
-      link.download = `infographedia-${safeTitle}.png`
-      link.href = finalDataUrl
-      link.click()
+      triggerDownload(finalDataUrl, title)
 
       toast('Infographic downloaded', 'success')
     } catch (err) {
@@ -124,7 +136,78 @@ export function useDownloadInfographic(
     } finally {
       setIsDownloading(false)
     }
-  }, [ref, postId, title, toast, isDownloading])
+  }, [ref, postPath, title, toast, isDownloading, options?.storySvg])
 
   return { download, isDownloading }
+}
+
+async function buildDownloadFromSvg(svgMarkup: string, postPath: string): Promise<string> {
+  const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgMarkup)}`
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error('Failed to load SVG image'))
+    img.src = dataUrl
+  })
+
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas context unavailable')
+
+  const footerPx = FOOTER_HEIGHT * 2
+  canvas.width = img.width
+  canvas.height = img.height + footerPx
+
+  ctx.drawImage(img, 0, 0)
+  drawFooter(ctx, img.width, img.height, postPath)
+
+  return canvas.toDataURL('image/png')
+}
+
+function drawFooter(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  imageHeight: number,
+  postPath: string,
+) {
+  const footerPx = FOOTER_HEIGHT * 2
+  ctx.fillStyle = FOOTER_BG
+  ctx.fillRect(0, imageHeight, width, footerPx)
+
+  const dotY = imageHeight + footerPx / 2
+  const dotX = 24
+  ctx.beginPath()
+  ctx.arc(dotX, dotY, BRAND_DOT_RADIUS, 0, Math.PI * 2)
+  ctx.fillStyle = BRAND_DOT_COLOR
+  ctx.fill()
+
+  ctx.fillStyle = FOOTER_TEXT_COLOR
+  ctx.font = FOOTER_FONT
+  ctx.textBaseline = 'middle'
+  const postURL = new URL(
+    postPath,
+    typeof window !== 'undefined' ? window.location.origin : getSiteURL(),
+  )
+  ctx.fillText(
+    `INFOGRAPHEDIA  ·  ${postURL.host}${postURL.pathname}`,
+    dotX + 12,
+    dotY,
+  )
+}
+
+function triggerDownload(
+  finalDataUrl: string,
+  title: string,
+) {
+  const link = document.createElement('a')
+  const safeTitle = title
+    .replace(/[^a-zA-Z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .toLowerCase()
+    .slice(0, 50)
+  link.download = `infographedia-${safeTitle}.png`
+  link.href = finalDataUrl
+  link.click()
 }

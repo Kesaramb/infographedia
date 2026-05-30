@@ -8,6 +8,9 @@ import {
   type ReactNode,
 } from 'react'
 import type { InfographicDNA } from '@/lib/dna/schema'
+import type { InfographicDocumentV2 } from '@/lib/antv/schema'
+import type { RenderEngineValue } from '@/lib/infographic-engine'
+import type { StoryDocumentV3 } from '@/lib/story/schema'
 
 // ============================================================
 // Modal Context — controls the iterate/create modal globally
@@ -19,6 +22,10 @@ interface ModalState {
   parentPost?: {
     id: number | string
     title: string
+    renderEngine: RenderEngineValue
+    formatVersion?: 1 | 2 | 3
+    documentV2?: InfographicDocumentV2 | null
+    storyDocument?: StoryDocumentV3 | null
     dna: InfographicDNA
     author: string
   }

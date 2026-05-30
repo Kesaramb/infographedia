@@ -3,6 +3,12 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers as getHeaders } from 'next/headers'
 import { DNASchema } from '@/lib/dna/schema'
+import { PREVIEW_RENDER_PROFILE, preflightDNA } from '@/lib/dna/rendering'
+import { normalizePostSlug } from '@/lib/posts'
+import { ingestContentMedia } from '@/lib/media/ingest'
+import { StoryDocumentSchema } from '@/lib/story/schema'
+import { renderStoryDocumentToMedia, renderStoryDocumentToSVG } from '@/lib/story/render'
+import { storyDocumentToDNA } from '@/lib/story/compat'
 
 /**
  * POST /api/publish
@@ -33,34 +39,102 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, dna, parentPostId } = body as {
+    const { title, description, storyDocument, parentPostId } = body as {
       title?: string
       description?: string
-      dna?: unknown
+      storyDocument?: unknown
       parentPostId?: number
     }
 
-    // Validate DNA
-    if (!dna) {
+    if (!storyDocument) {
       return NextResponse.json(
-        { success: false, error: 'DNA is required.' },
+        { success: false, error: 'StoryDocument is required.' },
         { status: 400 }
       )
     }
 
-    const dnaResult = DNASchema.safeParse(dna)
-    if (!dnaResult.success) {
+    const storyResult = StoryDocumentSchema.safeParse(storyDocument)
+    if (!storyResult.success) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid DNA format.',
-          details: dnaResult.error.issues,
+          error: 'Invalid StoryDocument format.',
+          details: storyResult.error.issues,
         },
         { status: 400 }
       )
     }
 
-    if (!title || title.trim().length === 0) {
+    let normalizedStoryDocument = storyResult.data
+    let normalizedDNA = DNASchema.parse(storyDocumentToDNA(storyResult.data))
+    let renderedImageId: number | string | undefined
+
+    try {
+      const ingestedMedia = await ingestContentMedia(payload, normalizedStoryDocument.evidence.media)
+      normalizedStoryDocument = {
+        ...normalizedStoryDocument,
+        story: {
+          ...normalizedStoryDocument.story,
+          thesis: title?.trim() || normalizedStoryDocument.story.thesis,
+        },
+        evidence: {
+          ...normalizedStoryDocument.evidence,
+          media: ingestedMedia,
+        },
+      }
+
+      const svg = await renderStoryDocumentToSVG(normalizedStoryDocument)
+      const compatibilityDNA = storyDocumentToDNA(normalizedStoryDocument)
+      const preflight = preflightDNA(compatibilityDNA, PREVIEW_RENDER_PROFILE)
+      if (!preflight.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: preflight.errors.map((issue) => issue.message).join(' '),
+            details: preflight.errors,
+          },
+          { status: 400 }
+        )
+      }
+
+      normalizedStoryDocument = StoryDocumentSchema.parse({
+        ...normalizedStoryDocument,
+        artifacts: {
+          ...normalizedStoryDocument.artifacts,
+          svg,
+        },
+        compatibility: {
+          dna: compatibilityDNA,
+        },
+      })
+      normalizedDNA = DNASchema.parse(compatibilityDNA)
+
+      const renderedImage = await renderStoryDocumentToMedia(
+        payload,
+        normalizedStoryDocument,
+        title?.trim() || normalizedStoryDocument.story.thesis,
+      )
+      renderedImageId = renderedImage.id
+      normalizedStoryDocument = {
+        ...normalizedStoryDocument,
+        artifacts: {
+          ...normalizedStoryDocument.artifacts,
+          renderedImageId,
+        },
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown StoryDocument publish error'
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Failed to finalize StoryDocument publish: ${message}. Please retry or regenerate.`,
+        },
+        { status: 400 }
+      )
+    }
+    const resolvedTitle = title?.trim() || normalizedStoryDocument.story.thesis
+
+    if (!resolvedTitle) {
       return NextResponse.json(
         { success: false, error: 'Title is required.' },
         { status: 400 }
@@ -70,10 +144,16 @@ export async function POST(request: NextRequest) {
     // Create the post with authenticated user as author
     const post = await payload.create({
       collection: 'posts',
+      draft: false,
       data: {
-        title: title.trim(),
+        title: resolvedTitle,
+        slug: normalizePostSlug(resolvedTitle),
         description: description?.trim(),
-        dna: dnaResult.data,
+        renderEngine: 'story-v3' as unknown as 'dna-legacy' | 'antv',
+        formatVersion: 3,
+        storyDocument: normalizedStoryDocument,
+        dna: normalizedDNA,
+        renderedImage: typeof renderedImageId === 'number' ? renderedImageId : undefined,
         author: user.id as number,
         parentPost: parentPostId as number | undefined,
         metrics: {
@@ -82,7 +162,7 @@ export async function POST(request: NextRequest) {
           shares: 0,
           iterationCount: 0,
         },
-      },
+      } as never,
     })
 
     // If this is an iteration, increment parent's iterationCount
@@ -97,6 +177,7 @@ export async function POST(request: NextRequest) {
         await payload.update({
           collection: 'posts',
           id: parentPostId,
+          draft: false,
           data: {
             metrics: {
               ...(parent.metrics as object),
@@ -113,6 +194,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, post })
   } catch (error) {
     console.error('[/api/publish] Unexpected error:', error)
+    const message = error instanceof Error ? error.message : String(error)
+
+    if (
+      message.includes('enum_posts_render_engine')
+      || message.includes('story-v3')
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Publishing is temporarily unavailable while the server finishes a required schema update. Please retry in a moment.',
+        },
+        { status: 503 }
+      )
+    }
+
     return NextResponse.json(
       { success: false, error: 'Internal server error.' },
       { status: 500 }

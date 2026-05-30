@@ -1,4 +1,5 @@
 import type { PostCardData } from '@/components/feed/post-card'
+import { adaptLegacyCompatiblePost } from '@/lib/story/legacy-post-adapter'
 
 /**
  * Transform a Payload post document into PostCardData.
@@ -8,6 +9,7 @@ export function transformPost(doc: Record<string, unknown>): PostCardData {
   const author = doc.author as Record<string, unknown> | null
   const parentPost = doc.parentPost as Record<string, unknown> | null
   const metrics = (doc.metrics ?? {}) as Record<string, number>
+  const readModel = adaptLegacyCompatiblePost(doc)
 
   // Resolve avatar: when populated, avatar is a Media object with a url field
   const authorAvatar = author?.avatar
@@ -18,9 +20,15 @@ export function transformPost(doc: Record<string, unknown>): PostCardData {
 
   return {
     id: doc.id as number,
+    slug: (doc.slug as string) ?? String(doc.id),
     title: (doc.title as string) ?? '',
     description: doc.description as string | undefined,
-    dna: doc.dna as PostCardData['dna'],
+    renderEngine: readModel.renderEngine,
+    formatVersion: readModel.formatVersion,
+    documentV2: readModel.documentV2,
+    storyDocument: readModel.storyDocument,
+    dna: readModel.dna as PostCardData['dna'],
+    renderedImage: doc.renderedImage as PostCardData['renderedImage'],
     createdAt: (doc.createdAt as string) ?? new Date().toISOString(),
     author: {
       username: (author?.username as string) ?? 'unknown',
@@ -29,6 +37,7 @@ export function transformPost(doc: Record<string, unknown>): PostCardData {
     parentPost: parentPost
       ? {
           id: parentPost.id as number,
+          slug: parentPost.slug as string | undefined,
           author: parentPost.author
             ? {
                 username:

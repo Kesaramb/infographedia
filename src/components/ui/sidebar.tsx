@@ -58,17 +58,15 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex flex-col gap-2 flex-grow">
-        {user?.role === 'admin' && (
-          <Link
-            href="/guide"
-            className={`hover:bg-white/10 active:bg-white/5 transition-all duration-200 rounded-xl flex items-center gap-3 p-3 text-neutral-300 hover:text-white ${
-              pathname.startsWith('/guide') ? 'bg-white/10 text-white font-medium' : ''
-            }`}
-          >
-            <BookOpen className="w-6 h-6" />
-            <span className="hidden lg:block text-lg">Guide</span>
-          </Link>
-        )}
+        <Link
+          href="/guide"
+          className={`hover:bg-white/10 active:bg-white/5 transition-all duration-200 rounded-xl flex items-center gap-3 p-3 text-neutral-300 hover:text-white ${
+            pathname.startsWith('/guide') ? 'bg-white/10 text-white font-medium' : ''
+          }`}
+        >
+          <BookOpen className="w-6 h-6" />
+          <span className="hidden lg:block text-lg">Guide</span>
+        </Link>
         {navItems.map((item) =>
           item.href === null ? (
             <GlassButton

@@ -8,6 +8,12 @@
   --dna-bg: #0a0a0a;
   --dna-text: #ffffff;
   --dna-accent: #3b82f6;
+
+  /* Mobile feed card sizing — fills viewport between header and bottom nav */
+  --feed-header-h: 3.5rem;
+  --feed-nav-h: calc(5rem + env(safe-area-inset-bottom, 0px));
+  --feed-card-h: calc(100vh - var(--feed-header-h) - var(--feed-nav-h));
+  --feed-card-h: calc(100svh - var(--feed-header-h) - var(--feed-nav-h));
 }
 
 /* === Base Styles === */
